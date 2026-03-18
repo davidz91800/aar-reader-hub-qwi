@@ -5,7 +5,7 @@
  * Ce projet regroupe 2 automations dans UN seul Apps Script:
  *
  * AUTOMATION 1 - WEB APP API (HUB NON QWI + HUB QWI + AAR PWA)
- *   - GET  action=status|listAars|getCatalog|getHashtags|ingestStatus|runIngest
+ *   - GET  action=status|listAars|getCatalog|getHashtags|ingestStatus|runIngest|debugLatestMessage|resetIngestState|retryIngest
  *   - POST action=upsert|delete|setCatalog|setHashtags
  *
  * AUTOMATION 2 - INGEST EMAIL -> DRIVE (trigger horaire)
@@ -76,9 +76,27 @@ function doGet(e) {
       return jsonOutput_({ ok: true, action: "runIngest", summary: result });
     }
 
+    if (action === "debuglatestmessage") {
+      assertAccess_(e && e.parameter ? e.parameter.accessKey : "", cfg);
+      return handleDebugLatestMessage_(cfg);
+    }
+
+    if (action === "resetingeststate") {
+      assertAccess_(e && e.parameter ? e.parameter.accessKey : "", cfg);
+      resetIngestState();
+      return jsonOutput_({ ok: true, action: "resetIngestState" });
+    }
+
+    if (action === "retryingest") {
+      assertAccess_(e && e.parameter ? e.parameter.accessKey : "", cfg);
+      resetIngestState();
+      var retryResult = runIngestCore_(cfg, { manual: true, afterReset: true });
+      return jsonOutput_({ ok: true, action: "retryIngest", summary: retryResult });
+    }
+
     return jsonOutput_({
       ok: true,
-      message: "Use GET action=status|listAars|getCatalog|getHashtags|ingestStatus|runIngest"
+      message: "Use GET action=status|listAars|getCatalog|getHashtags|ingestStatus|runIngest|debugLatestMessage|resetIngestState|retryIngest"
     });
   } catch (error) {
     return errorOutput_(error);
@@ -295,6 +313,58 @@ function testLatestMessageExtraction() {
   if (payloads.length) {
     Logger.log(JSON.stringify(normalizeAar_(payloads[0]), null, 2));
   }
+}
+
+function handleDebugLatestMessage_(cfg) {
+  validateIngestConfig_(cfg);
+
+  var threads = GmailApp.search(cfg.ingestMailQuery, 0, 1);
+  if (!threads.length) {
+    return jsonOutput_({
+      ok: true,
+      action: "debugLatestMessage",
+      found: false,
+      reason: "No matching Gmail thread for current query.",
+      query: cfg.ingestMailQuery
+    });
+  }
+
+  var messages = threads[0].getMessages();
+  if (!messages.length) {
+    return jsonOutput_({
+      ok: true,
+      action: "debugLatestMessage",
+      found: false,
+      reason: "Matching thread exists but contains no message.",
+      query: cfg.ingestMailQuery
+    });
+  }
+
+  var latest = messages[messages.length - 1];
+  var plainBody = String(latest.getPlainBody() || "");
+  var rawContent = String(latest.getRawContent() || "");
+  var payloads = extractAarsFromMessage_(latest);
+
+  return jsonOutput_({
+    ok: true,
+    action: "debugLatestMessage",
+    found: true,
+    query: cfg.ingestMailQuery,
+    message: {
+      id: latest.getId(),
+      subject: latest.getSubject(),
+      from: latest.getFrom(),
+      date: latest.getDate() ? latest.getDate().toISOString() : null
+    },
+    markers: {
+      plainBegin: plainBody.indexOf("---BEGIN-AAR-JSON---") >= 0,
+      plainEnd: plainBody.indexOf("---END-AAR-JSON---") >= 0,
+      rawBegin: rawContent.indexOf("---BEGIN-AAR-JSON---") >= 0,
+      rawEnd: rawContent.indexOf("---END-AAR-JSON---") >= 0
+    },
+    payloadCount: payloads.length,
+    firstPayload: payloads.length ? normalizeAar_(payloads[0]) : null
+  });
 }
 
 function handleIngestStatus_() {
@@ -720,12 +790,14 @@ function normalizeAar_(input) {
       uniteAutre: str_(a.meta && a.meta.uniteAutre),
       flotte: str_(a.meta && a.meta.flotte),
       flotteAutre: str_(a.meta && a.meta.flotteAutre),
+      reportKind: normalizeReportKind_(a.meta && a.meta.reportKind),
       classification: normalizeClassification_(a.meta && a.meta.classification),
       missionType: str_(a.meta && a.meta.missionType),
       logCountry: str_(a.meta && a.meta.logCountry),
       logCountryAutre: str_(a.meta && a.meta.logCountryAutre),
       logAirfield: str_(a.meta && a.meta.logAirfield),
       logAirfieldAutre: str_(a.meta && a.meta.logAirfieldAutre),
+      hashtags: extractHashtagsFromMeta_(a.meta),
       hashtag: str_(a.meta && a.meta.hashtag),
       hashtagAutre: str_(a.meta && a.meta.hashtagAutre),
       tacContext: str_(a.meta && a.meta.tacContext),
@@ -771,6 +843,51 @@ function normalizeClassification_(v) {
   if (raw.indexOf("DIFFUSION RESTREINTE") >= 0) return "DIFFUSION RESTREINTE";
   if (raw.indexOf("SECRET SPECIAL FRANCE") >= 0) return "SECRET SPECIAL FRANCE";
   return raw;
+}
+
+function normalizeReportKind_(v) {
+  return String(v || "").trim().toUpperCase() === "FLASH" ? "FLASH" : "CONSOLIDE";
+}
+
+function normalizeHashtag_(value) {
+  var text = String(value || "").trim();
+  if (!text) return "";
+  text = text.replace(/\s+/g, "-");
+  if (text.charAt(0) !== "#") text = "#" + text;
+  return text;
+}
+
+function normalizeHashtagArray_(values) {
+  var source = Array.isArray(values) ? values : [];
+  var out = [];
+  var seen = {};
+  for (var i = 0; i < source.length; i += 1) {
+    var tag = normalizeHashtag_(source[i]);
+    if (!tag) continue;
+    var key = tag.toUpperCase();
+    if (seen[key]) continue;
+    seen[key] = true;
+    out.push(tag);
+  }
+  out.sort(function(a, b) { return a.localeCompare(b); });
+  return out;
+}
+
+function extractHashtagsFromMeta_(meta) {
+  var src = meta && typeof meta === "object" ? meta : {};
+  var out = [];
+  if (Array.isArray(src.hashtags)) out = out.concat(src.hashtags);
+
+  var selectedRaw = String(src.hashtag || "").trim();
+  var selected = normalizeHashtag_(selectedRaw);
+  var other = normalizeHashtag_(src.hashtagAutre);
+  if (selectedRaw.toUpperCase() === "AUTRE") {
+    if (other) out.push(other);
+  } else {
+    if (selected) out.push(selected);
+    if (other && other.toUpperCase() !== selected.toUpperCase()) out.push(other);
+  }
+  return normalizeHashtagArray_(out);
 }
 
 /* =========================
@@ -852,8 +969,10 @@ function mergeCatalogFromAar_(catalog, aar) {
   var added = 0;
   var meta = aar && aar.meta ? aar.meta : {};
 
-  var hashtag = resolveOtherChoice_(meta.hashtag, meta.hashtagAutre);
-  if (addCatalogValue_(catalog.hashtags, hashtag, "hashtag")) added += 1;
+  var hashtags = extractHashtagsFromMeta_(meta);
+  for (var i = 0; i < hashtags.length; i += 1) {
+    if (addCatalogValue_(catalog.hashtags, hashtags[i], "hashtag")) added += 1;
+  }
 
   var country = resolveOtherChoice_(meta.logCountry, meta.logCountryAutre);
   if (addCatalogValue_(catalog.countries, country, "text")) added += 1;
