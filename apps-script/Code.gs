@@ -422,8 +422,15 @@ function handleUpsert_(payload, cfg) {
 
   if (!file) {
     var folder = DriveApp.getFolderById(folderId);
-    var blob = Utilities.newBlob(jsonText, "application/json", fileName);
-    file = folder.createFile(blob);
+    var existing = folder.getFilesByName(fileName);
+    if (existing.hasNext()) {
+      file = existing.next();
+      file.setContent(jsonText);
+      if (fileName) file.setName(fileName);
+    } else {
+      var blob = Utilities.newBlob(jsonText, "application/json", fileName);
+      file = folder.createFile(blob);
+    }
   }
 
   return jsonOutput_({
@@ -791,6 +798,10 @@ function normalizeAar_(input) {
       flotte: str_(a.meta && a.meta.flotte),
       flotteAutre: str_(a.meta && a.meta.flotteAutre),
       reportKind: normalizeReportKind_(a.meta && a.meta.reportKind),
+      workflowStatus: normalizeWorkflowStatus_(a.meta && a.meta.workflowStatus),
+      sentToQwiAt: str_(a.meta && a.meta.sentToQwiAt),
+      publishedAt: str_(a.meta && a.meta.publishedAt),
+      qwiReviewedAt: str_(a.meta && a.meta.qwiReviewedAt),
       classification: normalizeClassification_(a.meta && a.meta.classification),
       missionType: str_(a.meta && a.meta.missionType),
       logCountry: str_(a.meta && a.meta.logCountry),
@@ -847,6 +858,12 @@ function normalizeClassification_(v) {
 
 function normalizeReportKind_(v) {
   return String(v || "").trim().toUpperCase() === "FLASH" ? "FLASH" : "CONSOLIDE";
+}
+
+function normalizeWorkflowStatus_(v) {
+  return String(v || "").trim().toUpperCase() === "PENDING_QWI_REVIEW"
+    ? "PENDING_QWI_REVIEW"
+    : "PUBLISHED";
 }
 
 function normalizeHashtag_(value) {
@@ -921,13 +938,25 @@ function writeCatalog_(catalog) {
 
 function normalizeCatalogObject_(input) {
   var src = input && typeof input === "object" ? input : {};
-  return {
+  var out = {
     hashtags: normalizeCatalogArray_(src.hashtags, "hashtag"),
     countries: normalizeCatalogArray_(src.countries, "text"),
     oaci: normalizeCatalogArray_(src.oaci, "oaci"),
     operations: normalizeCatalogArray_(src.operations, "text"),
-    exercises: normalizeCatalogArray_(src.exercises, "text")
+    exercises: normalizeCatalogArray_(src.exercises, "text"),
+    oaciCountryMap: normalizeCatalogMap_(src.oaciCountryMap)
   };
+
+  var mapKeys = Object.keys(out.oaciCountryMap || {});
+  if (mapKeys.length) {
+    out.oaci = normalizeCatalogArray_(out.oaci.concat(mapKeys), "oaci");
+    var mappedCountries = [];
+    for (var i = 0; i < mapKeys.length; i += 1) {
+      mappedCountries.push(out.oaciCountryMap[mapKeys[i]]);
+    }
+    out.countries = normalizeCatalogArray_(out.countries.concat(mappedCountries), "text");
+  }
+  return out;
 }
 
 function normalizeCatalogArray_(values, kind) {
@@ -945,6 +974,19 @@ function normalizeCatalogArray_(values, kind) {
   }
 
   out.sort(function(a, b) { return a.localeCompare(b); });
+  return out;
+}
+
+function normalizeCatalogMap_(input) {
+  var src = input && typeof input === "object" ? input : {};
+  var out = {};
+  var keys = Object.keys(src).sort(function(a, b) { return String(a || "").localeCompare(String(b || "")); });
+  for (var i = 0; i < keys.length; i += 1) {
+    var normalizedOaci = normalizeCatalogValue_(keys[i], "oaci");
+    var normalizedCountry = normalizeCatalogValue_(src[keys[i]], "text");
+    if (!normalizedOaci || !normalizedCountry) continue;
+    out[normalizedOaci] = normalizedCountry;
+  }
   return out;
 }
 
@@ -979,6 +1021,7 @@ function mergeCatalogFromAar_(catalog, aar) {
 
   var oaci = resolveOtherChoice_(meta.logAirfield, meta.logAirfieldAutre);
   if (addCatalogValue_(catalog.oaci, oaci, "oaci")) added += 1;
+  if (addCatalogMapEntry_(catalog.oaciCountryMap, oaci, country)) added += 1;
 
   var operation = resolveOtherChoice_(meta.tacOperation, meta.tacOperationAutre);
   if (addCatalogValue_(catalog.operations, operation, "text")) added += 1;
@@ -992,6 +1035,12 @@ function mergeCatalogFromAar_(catalog, aar) {
     catalog.oaci = normalizeCatalogArray_(catalog.oaci, "oaci");
     catalog.operations = normalizeCatalogArray_(catalog.operations, "text");
     catalog.exercises = normalizeCatalogArray_(catalog.exercises, "text");
+    catalog.oaciCountryMap = normalizeCatalogMap_(catalog.oaciCountryMap);
+    catalog.oaci = normalizeCatalogArray_(catalog.oaci.concat(Object.keys(catalog.oaciCountryMap || {})), "oaci");
+    var mappedCountries = [];
+    var mapKeys = Object.keys(catalog.oaciCountryMap || {});
+    for (var i = 0; i < mapKeys.length; i += 1) mappedCountries.push(catalog.oaciCountryMap[mapKeys[i]]);
+    catalog.countries = normalizeCatalogArray_(catalog.countries.concat(mappedCountries), "text");
   }
 
   return added;
@@ -1015,6 +1064,17 @@ function addCatalogValue_(arr, value, kind) {
     if (String(arr[i] || "").toUpperCase() === key) return false;
   }
   arr.push(normalized);
+  return true;
+}
+
+function addCatalogMapEntry_(map, oaciValue, countryValue) {
+  if (!map || typeof map !== "object") return false;
+  var oaci = normalizeCatalogValue_(oaciValue, "oaci");
+  var country = normalizeCatalogValue_(countryValue, "text");
+  if (!oaci || !country) return false;
+  var current = normalizeCatalogValue_(map[oaci], "text");
+  if (String(current || "").toUpperCase() === String(country).toUpperCase()) return false;
+  map[oaci] = country;
   return true;
 }
 

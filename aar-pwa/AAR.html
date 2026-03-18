@@ -2671,8 +2671,8 @@
                 qwi: { ...QWI_DEFAULTS }
             },
             missionConfig: { ...FALLBACK_MISSION_CONFIG },
-            baseMissionCatalog: { hashtags: [], countries: [], oaci: [], operations: [], exercises: [] },
-            dynamicMissionCatalog: { hashtags: [], countries: [], oaci: [], operations: [], exercises: [] },
+            baseMissionCatalog: { hashtags: [], countries: [], oaci: [], operations: [], exercises: [], oaciCountryMap: {} },
+            dynamicMissionCatalog: { hashtags: [], countries: [], oaci: [], operations: [], exercises: [], oaciCountryMap: {} },
             countryNameLookup: {},
             catalogRefreshInFlight: false,
             lastCatalogRefreshAt: 0,
@@ -2838,13 +2838,18 @@
                     : (Array.isArray(external.allAirfields) && external.allAirfields.length)
                     ? external.allAirfields.filter(Boolean)
                     : Object.values(logAirfieldsByCountry || {}).flat().filter(Boolean);
+                const configuredOaciCountryMap = (externalCatalog.oaciCountryMap && typeof externalCatalog.oaciCountryMap === 'object')
+                    ? externalCatalog.oaciCountryMap
+                    : {};
+                const staticOaciCountryMap = App.buildOaciCountryMapFromByCountry(logAirfieldsByCountry);
                 const cachedCatalog = App.loadMissionCatalogFromStorage();
                 App.baseMissionCatalog = App.normalizeMissionCatalogObject({
                     hashtags: configuredHashtags || [],
                     countries: allCountries,
-                    oaci: configuredAllAirfields,
+                    oaci: [...configuredAllAirfields, ...Object.keys(configuredOaciCountryMap || {})],
                     operations: tacOperations,
-                    exercises: tacExercises
+                    exercises: tacExercises,
+                    oaciCountryMap: { ...staticOaciCountryMap, ...configuredOaciCountryMap }
                 });
                 App.dynamicMissionCatalog = App.compactDynamicMissionCatalog(cachedCatalog || {});
 
@@ -2854,6 +2859,7 @@
                     tacOperations: [],
                     tacExercises: [],
                     logAirfieldsByCountry,
+                    oaciCountryMap: {},
                     hashtags: [],
                     appsScript: {
                         webAppUrl: String(appsScriptCfg.webAppUrl || '').trim(),
@@ -3118,7 +3124,8 @@
                         countries: App.normalizeCatalogTextArray(parsed.countries || []),
                         oaci: App.normalizeOaciArray(parsed.oaci || []),
                         operations: App.normalizeCatalogTextArray(parsed.operations || []),
-                        exercises: App.normalizeCatalogTextArray(parsed.exercises || [])
+                        exercises: App.normalizeCatalogTextArray(parsed.exercises || []),
+                        oaciCountryMap: App.normalizeOaciCountryMap(parsed.oaciCountryMap || {})
                     };
                 } catch (error) {
                     console.warn('Mission catalog parse failed:', error);
@@ -3164,15 +3171,50 @@
                 return App.normalizeCatalogTextArray(values).map((value) => String(value).toUpperCase());
             },
 
+            normalizeOaciCountryMap: (input) => {
+                const src = (input && typeof input === 'object') ? input : {};
+                const out = {};
+                Object.keys(src).forEach((rawOaci) => {
+                    const oaci = App.normalizeOaciArray([rawOaci])[0] || '';
+                    const country = App.normalizeCatalogTextArray([src[rawOaci]])[0] || '';
+                    if (!oaci || !country) return;
+                    out[oaci] = country;
+                });
+                return out;
+            },
+
+            buildOaciCountryMapFromByCountry: (byCountry) => {
+                const out = {};
+                const source = (byCountry && typeof byCountry === 'object') ? byCountry : {};
+                Object.keys(source).forEach((countryRaw) => {
+                    const country = App.normalizeCatalogTextArray([countryRaw])[0] || '';
+                    if (!country) return;
+                    (Array.isArray(source[countryRaw]) ? source[countryRaw] : []).forEach((airfieldRaw) => {
+                        const oaci = App.normalizeOaciArray([airfieldRaw])[0] || '';
+                        if (!oaci) return;
+                        out[oaci] = country;
+                    });
+                });
+                return out;
+            },
+
             normalizeMissionCatalogObject: (catalog) => {
                 const src = (catalog && typeof catalog === 'object') ? catalog : {};
-                return {
+                const out = {
                     hashtags: App.normalizeHashtagArray(src.hashtags || []),
                     countries: App.normalizeCatalogTextArray(src.countries || []),
                     oaci: App.normalizeOaciArray(src.oaci || []),
                     operations: App.normalizeCatalogTextArray(src.operations || []),
-                    exercises: App.normalizeCatalogTextArray(src.exercises || [])
+                    exercises: App.normalizeCatalogTextArray(src.exercises || []),
+                    oaciCountryMap: App.normalizeOaciCountryMap(src.oaciCountryMap || {})
                 };
+                const mapKeys = Object.keys(out.oaciCountryMap || {});
+                if (mapKeys.length) {
+                    out.oaci = App.normalizeOaciArray([...(out.oaci || []), ...mapKeys]);
+                    const mappedCountries = mapKeys.map((oaci) => out.oaciCountryMap[oaci]).filter(Boolean);
+                    out.countries = App.normalizeCatalogTextArray([...(out.countries || []), ...mappedCountries]);
+                }
+                return out;
             },
 
             compactDynamicMissionCatalog: (catalog) => {
@@ -3188,17 +3230,38 @@
                     countries: dropBaseValues(normalized.countries, base.countries, App.normalizeCatalogTextArray),
                     oaci: dropBaseValues(normalized.oaci, base.oaci, App.normalizeOaciArray),
                     operations: dropBaseValues(normalized.operations, base.operations, App.normalizeCatalogTextArray),
-                    exercises: dropBaseValues(normalized.exercises, base.exercises, App.normalizeCatalogTextArray)
+                    exercises: dropBaseValues(normalized.exercises, base.exercises, App.normalizeCatalogTextArray),
+                    oaciCountryMap: (() => {
+                        const out = {};
+                        const baseMap = App.normalizeOaciCountryMap(base.oaciCountryMap || {});
+                        const currentMap = App.normalizeOaciCountryMap(normalized.oaciCountryMap || {});
+                        Object.keys(currentMap).forEach((oaci) => {
+                            const country = currentMap[oaci];
+                            const baseCountry = baseMap[oaci] || '';
+                            if (App.normalizeKey(baseCountry) === App.normalizeKey(country)) return;
+                            out[oaci] = country;
+                        });
+                        return App.normalizeOaciCountryMap(out);
+                    })()
                 };
             },
 
             rebuildEffectiveMissionCatalog: (persist = true) => {
                 const base = App.normalizeMissionCatalogObject(App.baseMissionCatalog || {});
                 const dynamic = App.normalizeMissionCatalogObject(App.dynamicMissionCatalog || {});
+                const mergedOaciCountryMap = App.normalizeOaciCountryMap({
+                    ...(base.oaciCountryMap || {}),
+                    ...(dynamic.oaciCountryMap || {})
+                });
 
                 App.missionConfig.hashtags = App.normalizeHashtagArray([...(base.hashtags || []), ...(dynamic.hashtags || [])]);
                 App.missionConfig.allCountries = App.normalizeCatalogTextArray([...(base.countries || []), ...(dynamic.countries || [])]);
-                App.missionConfig.allAirfields = App.normalizeOaciArray([...(base.oaci || []), ...(dynamic.oaci || [])]);
+                App.missionConfig.oaciCountryMap = mergedOaciCountryMap;
+                App.missionConfig.allAirfields = App.normalizeOaciArray([
+                    ...(base.oaci || []),
+                    ...(dynamic.oaci || []),
+                    ...Object.keys(mergedOaciCountryMap || {})
+                ]);
                 App.missionConfig.tacOperations = App.normalizeCatalogTextArray([...(base.operations || []), ...(dynamic.operations || [])]);
                 App.missionConfig.tacExercises = App.normalizeCatalogTextArray([...(base.exercises || []), ...(dynamic.exercises || [])]);
 
@@ -3227,7 +3290,10 @@
                     countries: replace ? src.countries : [...currentDynamic.countries, ...src.countries],
                     oaci: replace ? src.oaci : [...currentDynamic.oaci, ...src.oaci],
                     operations: replace ? src.operations : [...currentDynamic.operations, ...src.operations],
-                    exercises: replace ? src.exercises : [...currentDynamic.exercises, ...src.exercises]
+                    exercises: replace ? src.exercises : [...currentDynamic.exercises, ...src.exercises],
+                    oaciCountryMap: replace
+                        ? src.oaciCountryMap
+                        : { ...(currentDynamic.oaciCountryMap || {}), ...(src.oaciCountryMap || {}) }
                 });
 
                 App.rebuildEffectiveMissionCatalog();
@@ -3851,11 +3917,13 @@
             getLogAirfieldsForCurrentCountry: () => {
                 const resolvedCountry = App.resolveCountryName(App.getEffectiveLogCountry());
                 const scoped = App.missionConfig.logAirfieldsByCountry[resolvedCountry] || [];
-                const dynamicOaci = (App.dynamicMissionCatalog && Array.isArray(App.dynamicMissionCatalog.oaci))
-                    ? App.dynamicMissionCatalog.oaci
-                    : [];
-                if (!resolvedCountry) return App.normalizeOaciArray(dynamicOaci);
-                return App.normalizeOaciArray([...(scoped || []), ...(dynamicOaci || [])]);
+                const oaciCountryMap = App.normalizeOaciCountryMap(App.missionConfig.oaciCountryMap || {});
+                if (!resolvedCountry) return [];
+                const countryKey = App.normalizeKey(resolvedCountry);
+                const mappedAirfields = Object.keys(oaciCountryMap).filter((oaci) => {
+                    return App.normalizeKey(oaciCountryMap[oaci]) === countryKey;
+                });
+                return App.normalizeOaciArray([...(scoped || []), ...(mappedAirfields || [])]);
             },
 
             renderLogAirfieldOptions: () => {
