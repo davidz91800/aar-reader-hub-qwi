@@ -2110,8 +2110,8 @@
             <div class="admin-list admin-list-pending">
               ${candidates.length ? candidates.map((row, idx) => {
                 const mapOptions = getMappingOptionsForCandidate(category, row.value);
-                const mapListId = `admin-map-list-${category}-${idx}`;
-                const countryListId = `admin-country-list-${category}-${idx}`;
+                const mapSuggestKey = `admin-map-suggest-${category}-${idx}`;
+                const countrySuggestKey = `admin-country-suggest-${category}-${idx}`;
                 const countryOptions = category === "oaci"
                   ? normalizeCatalogValues("countries", [
                       ...(row.countryOptions || []),
@@ -2136,15 +2136,14 @@
                           data-admin-country-input="${esc(category)}"
                           data-admin-source="${esc(row.value)}"
                           data-admin-idx="${idx}"
-                          list="${esc(countryListId)}"
+                          data-admin-suggest-key="${esc(countrySuggestKey)}"
+                          data-admin-options="${esc(JSON.stringify(countryOptions))}"
                           value="${esc(countryHint)}"
                           placeholder="Pays associe (obligatoire pour creer)"
                           autocomplete="off"
                           spellcheck="false"
                         >
-                        <datalist id="${esc(countryListId)}">
-                          ${countryOptions.map((value) => `<option value="${esc(value)}"></option>`).join("")}
-                        </datalist>
+                        <div class="admin-suggest-menu" data-admin-suggest-menu="${esc(countrySuggestKey)}" hidden></div>
                       </div>
                     ` : ""}
                     <div class="admin-action-grid">
@@ -2154,14 +2153,13 @@
                         data-admin-map-input="${esc(category)}"
                         data-admin-source="${esc(row.value)}"
                         data-admin-idx="${idx}"
-                        list="${esc(mapListId)}"
+                        data-admin-suggest-key="${esc(mapSuggestKey)}"
+                        data-admin-options="${esc(JSON.stringify(mapOptions))}"
                         placeholder="Rattacher a... (filtre en live)"
                         autocomplete="off"
                         spellcheck="false"
                       >
-                      <datalist id="${esc(mapListId)}">
-                        ${mapOptions.map((value) => `<option value="${esc(value)}"></option>`).join("")}
-                      </datalist>
+                      <div class="admin-suggest-menu" data-admin-suggest-menu="${esc(mapSuggestKey)}" hidden></div>
                       <button class="admin-btn" data-admin-map-btn="${esc(category)}" data-admin-source="${esc(row.value)}" data-admin-idx="${idx}" type="button">Rattacher</button>
                     </div>
                   </div>
@@ -2188,14 +2186,13 @@
                   <input
                     class="admin-input"
                     data-admin-add-country-input="${esc(category)}"
-                    list="admin-add-country-list-${esc(category)}"
+                    data-admin-suggest-key="admin-add-country-suggest-${esc(category)}"
+                    data-admin-options="${esc(JSON.stringify(getEffectiveCatalog().countries || []))}"
                     placeholder="Pays associe au code OACI (obligatoire)"
                     autocomplete="off"
                     spellcheck="false"
                   >
-                  <datalist id="admin-add-country-list-${esc(category)}">
-                    ${(getEffectiveCatalog().countries || []).map((country) => `<option value="${esc(country)}"></option>`).join("")}
-                  </datalist>
+                  <div class="admin-suggest-menu" data-admin-suggest-menu="admin-add-country-suggest-${esc(category)}" hidden></div>
                 </div>
               ` : ""}
             </section>
@@ -2249,6 +2246,70 @@
   function bindAdminEvents(container) {
     if (!container) return;
 
+    const parseSuggestOptions = (input) => {
+      const raw = String(input.getAttribute("data-admin-options") || "[]").trim();
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        const seen = new Set();
+        const out = [];
+        (Array.isArray(parsed) ? parsed : []).forEach((value) => {
+          const normalized = normalizeTextValue(value);
+          if (!normalized) return;
+          const key = normalized.toUpperCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          out.push(normalized);
+        });
+        return out.sort((a, b) => a.localeCompare(b, "fr"));
+      } catch (_) {
+        return [];
+      }
+    };
+
+    const getSuggestMenu = (input) => {
+      const key = String(input.getAttribute("data-admin-suggest-key") || "").trim();
+      if (!key) return null;
+      return container.querySelector(`[data-admin-suggest-menu="${key}"]`);
+    };
+
+    const hideSuggestMenu = (input) => {
+      const menu = getSuggestMenu(input);
+      if (!menu) return;
+      menu.hidden = true;
+      menu.innerHTML = "";
+    };
+
+    const renderSuggestMenu = (input) => {
+      const menu = getSuggestMenu(input);
+      if (!menu) return;
+      const all = parseSuggestOptions(input);
+      const query = normalizeTextValue(input.value).toUpperCase();
+      const filtered = query
+        ? all.filter((value) => String(value || "").toUpperCase().includes(query))
+        : all;
+      const items = filtered.slice(0, 30);
+      if (!items.length) {
+        hideSuggestMenu(input);
+        return;
+      }
+      menu.innerHTML = items.map((value) => `
+        <button class="admin-suggest-item" type="button" data-admin-suggest-value="${esc(value)}">${esc(value)}</button>
+      `).join("");
+      menu.hidden = false;
+      menu.querySelectorAll("[data-admin-suggest-value]").forEach((btn) => {
+        btn.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+        });
+        btn.addEventListener("click", () => {
+          const value = String(btn.getAttribute("data-admin-suggest-value") || "").trim();
+          input.value = value;
+          hideSuggestMenu(input);
+          input.focus({ preventScroll: true });
+        });
+      });
+    };
+
     container.querySelectorAll("[data-admin-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const nextCategory = btn.getAttribute("data-admin-tab");
@@ -2276,6 +2337,28 @@
         event.stopPropagation();
         adminOpenHelpKey = "";
         renderAdmin(container);
+      });
+    });
+
+    container.querySelectorAll("[data-admin-suggest-key]").forEach((input) => {
+      input.addEventListener("focus", () => {
+        renderSuggestMenu(input);
+      });
+      input.addEventListener("input", () => {
+        renderSuggestMenu(input);
+      });
+      input.addEventListener("blur", () => {
+        setTimeout(() => hideSuggestMenu(input), 120);
+      });
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          hideSuggestMenu(input);
+          return;
+        }
+        if (event.key === "ArrowDown") {
+          const menu = getSuggestMenu(input);
+          if (!menu || menu.hidden) renderSuggestMenu(input);
+        }
       });
     });
 
