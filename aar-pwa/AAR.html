@@ -168,10 +168,23 @@
         }
 
         .nav-item.nav-preview-link {
-            margin-top: auto;
+            margin-top: 0;
             border: 1px dashed rgba(59, 130, 246, 0.3);
             color: var(--accent);
             background: rgba(59, 130, 246, 0.05);
+        }
+
+        .nav-item.nav-workflow-link {
+            margin-top: auto;
+            border: 1px solid rgba(148, 163, 184, 0.26);
+            color: #cbd5e1;
+            background: rgba(148, 163, 184, 0.06);
+        }
+
+        .nav-item.nav-workflow-link:hover {
+            border-color: rgba(148, 163, 184, 0.52);
+            background: rgba(148, 163, 184, 0.12);
+            color: #f8fafc;
         }
 
         /* --- CONTENT AREA --- */
@@ -562,26 +575,6 @@
             border-color: var(--danger);
         }
 
-        .btn-workflow {
-            border-color: rgba(59, 130, 246, 0.45);
-            background: linear-gradient(180deg, rgba(30, 58, 138, 0.28), rgba(15, 23, 42, 0.92));
-            color: #dbeafe;
-        }
-
-        .btn-workflow:hover {
-            border-color: rgba(96, 165, 250, 0.85);
-            background: linear-gradient(180deg, rgba(30, 64, 175, 0.36), rgba(15, 23, 42, 0.94));
-            color: #eff6ff;
-        }
-
-        .workflow-guide-icon {
-            font-size: 0.98rem;
-            line-height: 1;
-        }
-
-        .workflow-guide-text {
-            letter-spacing: 0.02em;
-        }
 
         .btn-back {
             text-decoration: none;
@@ -1433,6 +1426,10 @@
                 margin-top: 0;
             }
 
+            .nav-item.nav-workflow-link {
+                margin-top: 0;
+            }
+
             .nav-item:hover {
                 transform: none;
             }
@@ -1501,15 +1498,6 @@
 
             .toolbar .btn {
                 font-size: 0.8rem;
-            }
-
-            .workflow-guide-text {
-                display: none;
-            }
-
-            .btn-workflow {
-                padding-left: 0.65rem;
-                padding-right: 0.65rem;
             }
 
             .classif-selector {
@@ -1833,10 +1821,6 @@
             <input type="file" id="file-input" style="display: none;" accept=".json">
             <button class="btn" onclick="document.getElementById('file-input').click()">📂 Charger JSON</button>
             <button class="btn" onclick="App.exportJSON()">💾 Sauvegarder JSON</button>
-            <button id="workflow-guide-btn" class="btn btn-workflow" onclick="WorkflowGuide.open()"
-                title="Afficher le workflow complet des AAR" aria-label="Afficher le workflow complet des AAR">
-                <span class="workflow-guide-icon">🧭</span><span class="workflow-guide-text">Workflow AAR</span>
-            </button>
             <button id="send-qwi-btn" class="btn" onclick="App.sendQwiEmail()"><img class="btn-icon-img" src="./Logo QWI.png" alt="QWI">Send to QWI</button>
             <button class="btn btn-primary" onclick="App.printReport()">🖨️ Imprimer / PDF</button>
             <button class="btn btn-danger" onclick="App.reset()" title="Effacer tout">🗑️</button>
@@ -1849,6 +1833,10 @@
             <div class="nav-item" onclick="App.nav(1)"><span>📝</span> 2. FAITS</div>
             <div class="nav-item" onclick="App.nav(2)"><span>🔬</span> 3. ANALYSE</div>
             <div class="nav-item" onclick="App.nav(3)"><span>🎯</span> 4. RECOMMANDATIONS</div>
+            <div class="nav-item nav-workflow-link" onclick="WorkflowGuide.open()"
+                title="Afficher le workflow complet création, validation, diffusion">
+                <span>🧭</span> Workflow AAR
+            </div>
             <div class="nav-item nav-preview-link" onclick="App.nav(4)">
                 <span>👁️</span> VISUALISATION / PDF
             </div>
