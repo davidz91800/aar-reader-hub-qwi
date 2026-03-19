@@ -1812,6 +1812,62 @@
     }
   }
 
+  async function dropOtherCandidate(category, sourceValue) {
+    const def = CATALOG_DEFS[category];
+    if (!def) return;
+    const source = def.normalize(sourceValue);
+    if (!source) {
+      toast("Valeur invalide.");
+      return;
+    }
+    const canDrop = await askConfirmation({
+      title: "Supprimer une valeur a classer",
+      message: `Supprimer '${source}' des AAR concernes ?\n\nCette action efface cette valeur dans les champs associes.`,
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
+      kind: "danger"
+    });
+    if (!canDrop) return;
+
+    await applyRecordsMutation((record) => {
+      const meta = record?.mission?.meta || {};
+      if (def.contextKey && def.contextValue) {
+        const ctx = String(meta?.[def.contextKey] || "").trim().toUpperCase();
+        if (ctx !== String(def.contextValue).trim().toUpperCase()) return false;
+      }
+
+      if (def.arrayKey) {
+        const currentValues = getMetaValuesForCategory(meta, category);
+        if (!currentValues.length) return false;
+        const nextValues = currentValues.filter((value) => String(value).toUpperCase() !== String(source).toUpperCase());
+        if (nextValues.length === currentValues.length) return false;
+        meta[def.arrayKey] = normalizeCatalogValues(category, nextValues);
+        syncLegacyHashtagMeta(meta);
+        return true;
+      }
+
+      const selectedRaw = String(meta?.[def.selectKey] || "").trim();
+      const otherRaw = String(meta?.[def.otherKey] || "").trim();
+      const selected = def.normalize(selectedRaw);
+      const other = def.normalize(otherRaw);
+      const sourceUpper = String(source).toUpperCase();
+      const selectedIsSource = selected && String(selected).toUpperCase() === sourceUpper;
+      const otherIsSource = other && String(other).toUpperCase() === sourceUpper;
+
+      if (String(selectedRaw).toUpperCase() === "AUTRE") {
+        if (!otherIsSource) return false;
+        meta[def.selectKey] = "";
+        meta[def.otherKey] = "";
+        return true;
+      }
+
+      if (!selectedIsSource && !otherIsSource) return false;
+      if (selectedIsSource) meta[def.selectKey] = "";
+      if (otherIsSource || selectedIsSource) meta[def.otherKey] = "";
+      return true;
+    }, `${def.label}: suppression`);
+  }
+
   async function addCatalogItem(category, value, options = {}) {
     const def = CATALOG_DEFS[category];
     if (!def) return false;
@@ -1990,7 +2046,7 @@
           title: "Valeurs a classer",
           body: [
             "Cette liste montre les valeurs vues dans les AAR mais pas encore presentes dans le referentiel officiel.",
-            "Utilise 'Creer' si la valeur doit devenir officielle telle quelle. Utilise 'Rattacher' si c'est juste une variante d'une valeur deja existante.",
+            "Utilise 'Creer' si la valeur doit devenir officielle telle quelle. Utilise 'Rattacher' si c'est juste une variante d'une valeur deja existante. Utilise 'Supprimer' pour effacer cette valeur des AAR concernes.",
             category === "oaci" ? "Pour un code OACI, renseigne toujours le pays associe avant de creer." : ""
           ].filter(Boolean)
         };
@@ -2161,6 +2217,7 @@
                       >
                       <div class="admin-suggest-menu" data-admin-suggest-menu="${esc(mapSuggestKey)}" hidden></div>
                       <button class="admin-btn" data-admin-map-btn="${esc(category)}" data-admin-source="${esc(row.value)}" data-admin-idx="${idx}" type="button">Rattacher</button>
+                      <button class="admin-btn admin-btn-danger" data-admin-drop-btn="${esc(category)}" data-admin-source="${esc(row.value)}" type="button">Supprimer</button>
                     </div>
                   </div>
                 `;
@@ -2499,6 +2556,14 @@
         }
         await mapOtherCandidate(category, source, target);
         if (input) input.value = "";
+      });
+    });
+
+    container.querySelectorAll("[data-admin-drop-btn]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const category = btn.getAttribute("data-admin-drop-btn");
+        const source = btn.getAttribute("data-admin-source") || "";
+        await dropOtherCandidate(category, source);
       });
     });
 
