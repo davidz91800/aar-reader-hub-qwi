@@ -4954,6 +4954,9 @@
             let lastActiveElement = null;
             let lastKeyboardOpen = false;
             let lastEnsureAt = 0;
+            let lastViewportHeight = 0;
+            let lastViewportOffsetTop = 0;
+            let lockedEditingHeight = 0;
 
             const isEditingElement = (node) => {
                 if (!node) return false;
@@ -5018,15 +5021,43 @@
                     if (rafId) cancelAnimationFrame(rafId);
                     rafId = requestAnimationFrame(() => {
                         const vv = window.visualViewport;
-                        const height = Math.round(vv ? vv.height : window.innerHeight);
+                        const rawHeight = Math.round(vv ? vv.height : window.innerHeight);
                         const offsetTop = Math.max(0, Math.round(vv ? vv.offsetTop : 0));
                         const active = document.activeElement;
                         const editing = isEditingElement(active);
                         const keyboardOpen = !!vv && (window.innerHeight - vv.height > 120);
                         const activeChanged = active !== lastActiveElement;
                         const keyboardOpened = keyboardOpen && !lastKeyboardOpen;
-                        root.style.setProperty('--app-height', `${height}px`);
-                        root.style.setProperty('--viewport-offset-top', `${(editing || keyboardOpen) ? 0 : offsetTop}px`);
+                        const keyboardStateChanged = keyboardOpen !== lastKeyboardOpen;
+                        const heightChanged = Math.abs(rawHeight - lastViewportHeight) > 2;
+                        const offsetChanged = Math.abs(offsetTop - lastViewportOffsetTop) > 2;
+
+                        if (keyboardOpened) lockedEditingHeight = rawHeight;
+                        if (!keyboardOpen) lockedEditingHeight = 0;
+                        const effectiveHeight = (editing && keyboardOpen && lockedEditingHeight)
+                            ? lockedEditingHeight
+                            : rawHeight;
+
+                        // iPad noise guard: while typing with keyboard already open, ignore visualViewport
+                        // micro-events that otherwise make the form jump out of view.
+                        const ignoreVvNoise = editing
+                            && keyboardOpen
+                            && lastKeyboardOpen
+                            && !activeChanged
+                            && !keyboardStateChanged
+                            && reason.startsWith('vv-')
+                            && !heightChanged
+                            && !offsetChanged;
+
+                        if (!ignoreVvNoise) {
+                            if (effectiveHeight !== lastViewportHeight || reason === 'manual') {
+                                root.style.setProperty('--app-height', `${effectiveHeight}px`);
+                            }
+                            const viewportOffset = (editing || keyboardOpen) ? 0 : offsetTop;
+                            if (viewportOffset !== lastViewportOffsetTop || reason === 'manual') {
+                                root.style.setProperty('--viewport-offset-top', `${viewportOffset}px`);
+                            }
+                        }
 
                         const activeId = (active && active.id) ? String(active.id) : '';
                         if (activeId === 'meta-log-country-search' && App.ui && App.ui.showCountryMenu && typeof App.renderLogCountryMenu === 'function') {
@@ -5035,7 +5066,7 @@
                             App.renderLogAirfieldMenu();
                         }
 
-                        // iPad fix: avoid forcing scroll on every visualViewport update while typing.
+                        // Only re-center when entering a field / keyboard state change, not on each key.
                         const shouldEnsure = editing && (
                             reason === 'focusin' ||
                             reason === 'orientationchange' ||
@@ -5051,6 +5082,8 @@
 
                         lastActiveElement = active;
                         lastKeyboardOpen = keyboardOpen;
+                        lastViewportHeight = effectiveHeight;
+                        lastViewportOffsetTop = (editing || keyboardOpen) ? 0 : offsetTop;
                     });
                 };
 

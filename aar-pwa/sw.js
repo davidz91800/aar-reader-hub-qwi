@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "aar-shell-v8";
+﻿const CACHE_NAME = "aar-shell-v9";
 const SHELL_URL = "./AAR.html";
 const CORE_ASSETS = [SHELL_URL];
 const OPTIONAL_ASSETS = [
@@ -6,6 +6,7 @@ const OPTIONAL_ASSETS = [
   "./manifest.webmanifest",
   "./mission-config.js",
   "./Logo QWI.png",
+  "./AAR.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
@@ -99,6 +100,7 @@ self.addEventListener("fetch", (event) => {
     }
   })());
 });
+
 
 
 
