@@ -818,6 +818,7 @@ function normalizeAar_(input) {
       tacExerciseAutre: str_(a.meta && a.meta.tacExerciseAutre)
     },
     facts: {
+      content: resolveFactsContent_(a.facts),
       what: str_(a.facts && a.facts.what),
       why: str_(a.facts && a.facts.why),
       when: str_(a.facts && a.facts.when),
@@ -837,6 +838,63 @@ function normalizeAar_(input) {
     },
     qwi: { advice: str_(a.qwi && a.qwi.advice) }
   };
+}
+
+function sanitizeRichHtml_(value) {
+  var html = String(value || "");
+  if (!html) return "";
+  html = html
+    .replace(/<\uFFFD+\//g, "</")
+    .replace(/<\uFFFD+/g, "<")
+    .replace(/<\/\uFFFD+/g, "</")
+    .replace(/\uFFFD/g, "");
+  html = html.replace(/<(script|style|iframe|object|embed|link|meta)[^>]*>[\s\S]*?<\/\1>/gi, "");
+  html = html.replace(/<(script|style|iframe|object|embed|link|meta)[^>]*\/?>/gi, "");
+  return html.trim();
+}
+
+function richHtmlHasText_(value) {
+  var text = String(value || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, "").trim();
+  return !!text;
+}
+
+function escapeHtml_(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildFactsContentFromLegacy_(facts) {
+  var src = facts && typeof facts === "object" ? facts : {};
+  var items = [
+    { key: "what", label: "WHAT?" },
+    { key: "why", label: "WHY?" },
+    { key: "when", label: "WHEN?" },
+    { key: "where", label: "WHERE?" },
+    { key: "who", label: "WHO?" },
+    { key: "how", label: "HOW?" }
+  ];
+  var html = "";
+  for (var i = 0; i < items.length; i += 1) {
+    var block = sanitizeRichHtml_(src[items[i].key]);
+    if (!richHtmlHasText_(block)) continue;
+    html += "<h1>" + escapeHtml_(items[i].label) + "</h1>" + block;
+  }
+  var narrative = sanitizeRichHtml_(src.narrative);
+  if (richHtmlHasText_(narrative)) {
+    html += html ? ("<h1>NARRATIF</h1>" + narrative) : narrative;
+  }
+  return sanitizeRichHtml_(html);
+}
+
+function resolveFactsContent_(facts) {
+  var src = facts && typeof facts === "object" ? facts : {};
+  var content = sanitizeRichHtml_(src.content);
+  if (richHtmlHasText_(content)) return content;
+  return buildFactsContentFromLegacy_(src);
 }
 
 function str_(v) { return v == null ? "" : String(v); }
