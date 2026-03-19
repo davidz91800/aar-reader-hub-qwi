@@ -562,6 +562,27 @@
             border-color: var(--danger);
         }
 
+        .btn-workflow {
+            border-color: rgba(59, 130, 246, 0.45);
+            background: linear-gradient(180deg, rgba(30, 58, 138, 0.28), rgba(15, 23, 42, 0.92));
+            color: #dbeafe;
+        }
+
+        .btn-workflow:hover {
+            border-color: rgba(96, 165, 250, 0.85);
+            background: linear-gradient(180deg, rgba(30, 64, 175, 0.36), rgba(15, 23, 42, 0.94));
+            color: #eff6ff;
+        }
+
+        .workflow-guide-icon {
+            font-size: 0.98rem;
+            line-height: 1;
+        }
+
+        .workflow-guide-text {
+            letter-spacing: 0.02em;
+        }
+
         .btn-back {
             text-decoration: none;
             color: var(--text-muted);
@@ -877,6 +898,10 @@
 
             .print-only-header {
                 display: table-header-group !important;
+            }
+
+            .workflow-guide-overlay {
+                display: none !important;
             }
 
             .preview-page {
@@ -1376,6 +1401,11 @@
                 font-size: 0.82rem;
             }
 
+            .workflow-guide-card {
+                width: min(1120px, 96vw);
+                max-height: 92vh;
+            }
+
             main {
                 flex-direction: column;
             }
@@ -1473,6 +1503,15 @@
                 font-size: 0.8rem;
             }
 
+            .workflow-guide-text {
+                display: none;
+            }
+
+            .btn-workflow {
+                padding-left: 0.65rem;
+                padding-right: 0.65rem;
+            }
+
             .classif-selector {
                 grid-template-columns: 1fr;
             }
@@ -1558,7 +1597,8 @@
             .w6-tab,
             .dorese-tab,
             .editor-btn,
-            .combo-toggle {
+            .combo-toggle,
+            .workflow-guide-close {
                 min-height: 44px;
             }
 
@@ -1677,6 +1717,90 @@
             background: linear-gradient(180deg, #dc2626, #991b1b);
             color: #fee2e2;
         }
+
+        .workflow-guide-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 4700;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(2, 6, 23, 0.78);
+            -webkit-backdrop-filter: blur(3px);
+            backdrop-filter: blur(3px);
+        }
+
+        .workflow-guide-overlay.open {
+            display: flex;
+        }
+
+        .workflow-guide-card {
+            width: min(1220px, 96vw);
+            max-height: 94vh;
+            border-radius: 14px;
+            border: 1px solid rgba(59, 130, 246, 0.45);
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+            box-shadow: 0 28px 64px rgba(2, 6, 23, 0.64), inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+            padding: 14px 14px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .workflow-guide-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .workflow-guide-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #dbeafe;
+            letter-spacing: 0.02em;
+        }
+
+        .workflow-guide-subtitle {
+            margin: -4px 0 0;
+            color: #94a3b8;
+            font-size: 0.84rem;
+        }
+
+        .workflow-guide-close {
+            border: 1px solid rgba(71, 85, 105, 0.85);
+            background: rgba(15, 23, 42, 0.9);
+            color: #e2e8f0;
+            border-radius: 9px;
+            min-width: 34px;
+            min-height: 34px;
+            cursor: pointer;
+            font-size: 1.15rem;
+            line-height: 1;
+        }
+
+        .workflow-guide-close:hover {
+            border-color: rgba(148, 163, 184, 0.9);
+            color: #fff;
+        }
+
+        .workflow-guide-image-wrap {
+            border: 1px solid rgba(59, 130, 246, 0.38);
+            border-radius: 10px;
+            background: #020617;
+            overflow: auto;
+            max-height: calc(94vh - 120px);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .workflow-guide-image {
+            display: block;
+            width: 100%;
+            height: auto;
+            touch-action: pan-x pan-y pinch-zoom;
+        }
     </style>
 </head>
 
@@ -1688,6 +1812,19 @@
         <div id="tooltip-content"></div>
     </div>
 
+    <div id="workflow-guide-overlay" class="workflow-guide-overlay" aria-hidden="true">
+        <div class="workflow-guide-card" role="dialog" aria-modal="true" aria-labelledby="workflow-guide-title">
+            <div class="workflow-guide-header">
+                <h3 id="workflow-guide-title" class="workflow-guide-title">Workflow AAR</h3>
+                <button id="workflow-guide-close" type="button" class="workflow-guide-close" aria-label="Fermer le workflow">×</button>
+            </div>
+            <p class="workflow-guide-subtitle">Rappel création, validation et diffusion</p>
+            <div class="workflow-guide-image-wrap">
+                <img class="workflow-guide-image" src="./AAR.png" alt="Workflow complet de création, validation et diffusion des AAR">
+            </div>
+        </div>
+    </div>
+
     <header>
         <div class="brand">
             AFTER ACTION REVIEW TAT V1.0
@@ -1696,6 +1833,10 @@
             <input type="file" id="file-input" style="display: none;" accept=".json">
             <button class="btn" onclick="document.getElementById('file-input').click()">📂 Charger JSON</button>
             <button class="btn" onclick="App.exportJSON()">💾 Sauvegarder JSON</button>
+            <button id="workflow-guide-btn" class="btn btn-workflow" onclick="WorkflowGuide.open()"
+                title="Afficher le workflow complet des AAR" aria-label="Afficher le workflow complet des AAR">
+                <span class="workflow-guide-icon">🧭</span><span class="workflow-guide-text">Workflow AAR</span>
+            </button>
             <button id="send-qwi-btn" class="btn" onclick="App.sendQwiEmail()"><img class="btn-icon-img" src="./Logo QWI.png" alt="QWI">Send to QWI</button>
             <button class="btn btn-primary" onclick="App.printReport()">🖨️ Imprimer / PDF</button>
             <button class="btn btn-danger" onclick="App.reset()" title="Effacer tout">🗑️</button>
@@ -2500,6 +2641,59 @@
                     });
                 }
             };
+        })();
+
+        const WorkflowGuide = (() => {
+            let overlay = null;
+            let closeBtn = null;
+            let card = null;
+            let lastActive = null;
+            let initialized = false;
+
+            const close = () => {
+                if (!overlay) return;
+                overlay.classList.remove('open');
+                overlay.setAttribute('aria-hidden', 'true');
+                const restore = lastActive;
+                lastActive = null;
+                if (restore && typeof restore.focus === 'function') {
+                    setTimeout(() => restore.focus(), 0);
+                }
+            };
+
+            const open = () => {
+                if (!initialized) init();
+                if (!overlay) return;
+                lastActive = document.activeElement;
+                overlay.classList.add('open');
+                overlay.setAttribute('aria-hidden', 'false');
+                setTimeout(() => {
+                    if (closeBtn && typeof closeBtn.focus === 'function') closeBtn.focus();
+                }, 20);
+            };
+
+            const init = () => {
+                if (initialized) return;
+                initialized = true;
+                overlay = document.getElementById('workflow-guide-overlay');
+                closeBtn = document.getElementById('workflow-guide-close');
+                card = overlay ? overlay.querySelector('.workflow-guide-card') : null;
+                if (!overlay || !closeBtn || !card) return;
+
+                closeBtn.addEventListener('click', close);
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) close();
+                });
+                document.addEventListener('keydown', (event) => {
+                    if (!overlay.classList.contains('open')) return;
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        close();
+                    }
+                });
+            };
+
+            return { init, open, close };
         })();
 
         const App = {
@@ -4666,6 +4860,7 @@
         };
 
         // Start
+        WorkflowGuide.init();
         Tooltip.init();
         App.init();
 
@@ -4768,6 +4963,9 @@
             const root = document.documentElement;
             let rafId = 0;
             let ensureTimer = 0;
+            let lastActiveElement = null;
+            let lastKeyboardOpen = false;
+            let lastEnsureAt = 0;
 
             const isEditingElement = (node) => {
                 if (!node) return false;
@@ -4787,7 +4985,7 @@
                 return null;
             };
 
-            const ensureActiveFieldVisible = () => {
+            const ensureActiveFieldVisible = (force = false) => {
                 const active = document.activeElement;
                 if (!isEditingElement(active)) return;
 
@@ -4795,9 +4993,13 @@
                 const viewportHeight = Math.round(vv ? vv.height : window.innerHeight);
                 const viewportTop = Math.max(0, Math.round(vv ? vv.offsetTop : 0));
                 const rect = active.getBoundingClientRect();
-                const topSafe = viewportTop + 84;
-                const bottomSafe = viewportHeight - 24;
+                const topSafe = viewportTop + 88;
+                const bottomSafe = viewportHeight - 36;
                 if (rect.top >= topSafe && rect.bottom <= bottomSafe) return;
+
+                const now = Date.now();
+                if (!force && (now - lastEnsureAt < 260)) return;
+                lastEnsureAt = now;
 
                 const scroller = getScrollableParent(active);
                 if (scroller) {
@@ -4810,40 +5012,57 @@
                 }
 
                 try {
-                    active.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' });
+                    active.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
                 } catch (_) {
                     active.scrollIntoView();
                 }
             };
 
-            const scheduleEnsureVisible = (delay = 80) => {
+            const scheduleEnsureVisible = (delay = 80, force = false) => {
                 window.clearTimeout(ensureTimer);
                 ensureTimer = window.setTimeout(() => {
-                    window.requestAnimationFrame(() => ensureActiveFieldVisible());
+                    window.requestAnimationFrame(() => ensureActiveFieldVisible(force));
                 }, delay);
             };
 
-            const scheduleUpdate = (delay = 0) => {
+            const scheduleUpdate = (reason = 'generic', delay = 0) => {
                 const run = () => {
                     if (rafId) cancelAnimationFrame(rafId);
                     rafId = requestAnimationFrame(() => {
                         const vv = window.visualViewport;
                         const height = Math.round(vv ? vv.height : window.innerHeight);
                         const offsetTop = Math.max(0, Math.round(vv ? vv.offsetTop : 0));
-                        const editing = isEditingElement(document.activeElement);
+                        const active = document.activeElement;
+                        const editing = isEditingElement(active);
                         const keyboardOpen = !!vv && (window.innerHeight - vv.height > 120);
+                        const activeChanged = active !== lastActiveElement;
+                        const keyboardOpened = keyboardOpen && !lastKeyboardOpen;
                         root.style.setProperty('--app-height', `${height}px`);
                         root.style.setProperty('--viewport-offset-top', `${(editing || keyboardOpen) ? 0 : offsetTop}px`);
 
-                        const activeId = (document.activeElement && document.activeElement.id) ? String(document.activeElement.id) : '';
+                        const activeId = (active && active.id) ? String(active.id) : '';
                         if (activeId === 'meta-log-country-search' && App.ui && App.ui.showCountryMenu && typeof App.renderLogCountryMenu === 'function') {
                             App.renderLogCountryMenu();
                         } else if (activeId === 'meta-log-airfield-search' && App.ui && App.ui.showAirfieldMenu && typeof App.renderLogAirfieldMenu === 'function') {
                             App.renderLogAirfieldMenu();
                         }
 
-                        if (editing) scheduleEnsureVisible(keyboardOpen ? 40 : 100);
-                        else if (!keyboardOpen) window.scrollTo(0, 0);
+                        // iPad fix: avoid forcing scroll on every visualViewport update while typing.
+                        const shouldEnsure = editing && (
+                            reason === 'focusin' ||
+                            reason === 'orientationchange' ||
+                            reason === 'pageshow' ||
+                            reason === 'manual' ||
+                            activeChanged ||
+                            keyboardOpened
+                        );
+
+                        if (shouldEnsure) {
+                            scheduleEnsureVisible(keyboardOpen ? 120 : 140, true);
+                        }
+
+                        lastActiveElement = active;
+                        lastKeyboardOpen = keyboardOpen;
                     });
                 };
 
@@ -4851,18 +5070,18 @@
                 else run();
             };
 
-            document.addEventListener('focusin', () => scheduleUpdate(30), true);
-            window.addEventListener('resize', () => scheduleUpdate(), { passive: true });
-            window.addEventListener('orientationchange', () => scheduleUpdate(80), { passive: true });
-            window.addEventListener('pageshow', () => scheduleUpdate(80), { passive: true });
-            document.addEventListener('focusout', () => scheduleUpdate(120), true);
+            document.addEventListener('focusin', () => scheduleUpdate('focusin', 30), true);
+            window.addEventListener('resize', () => scheduleUpdate('resize'), { passive: true });
+            window.addEventListener('orientationchange', () => scheduleUpdate('orientationchange', 80), { passive: true });
+            window.addEventListener('pageshow', () => scheduleUpdate('pageshow', 80), { passive: true });
+            document.addEventListener('focusout', () => scheduleUpdate('focusout', 120), true);
 
             if (window.visualViewport) {
-                window.visualViewport.addEventListener('resize', () => scheduleUpdate(), { passive: true });
-                window.visualViewport.addEventListener('scroll', () => scheduleUpdate(), { passive: true });
+                window.visualViewport.addEventListener('resize', () => scheduleUpdate('vv-resize'), { passive: true });
+                window.visualViewport.addEventListener('scroll', () => scheduleUpdate('vv-scroll'), { passive: true });
             }
 
-            scheduleUpdate();
+            scheduleUpdate('manual');
         })();
     </script>
     <script>
