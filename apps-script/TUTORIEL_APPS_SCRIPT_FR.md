@@ -35,7 +35,7 @@ Dans le meme projet Apps Script (`Code.gs`), tu as 2 automations:
 1. Compte Google proprietaire du dossier Drive des AAR.
 2. ID du dossier Drive des JSON (ex: `18RTzOZzYWEIFWS5NXyYA_Ts3Xyf2X5kX`).
 3. Fichier source a copier:
-   - `E - AAR READER HUB/AAR READER HUB QWI/apps-script/Code.gs`
+   - `E - AAR READER HUB QWI/apps-script/Code.gs`
 
 ---
 

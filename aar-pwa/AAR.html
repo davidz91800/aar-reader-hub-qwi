@@ -314,6 +314,85 @@
             transform: translateY(-2px);
         }
 
+        .baap-role-selector {
+            display: none;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 0.35rem;
+            margin-top: 0.2rem;
+            margin-bottom: 0.55rem;
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        .ws-role-selector {
+            display: none;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 0.35rem;
+            margin-top: 0.2rem;
+            margin-bottom: 0.55rem;
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        .baap-role-item {
+            padding: 0.42rem 0.55rem;
+            text-align: left;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: rgba(255, 255, 255, 0.03);
+            display: flex;
+            flex-direction: column;
+            gap: 0.14rem;
+            user-select: none;
+        }
+
+        .baap-role-item:hover {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            color: #86efac;
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.12);
+        }
+
+        .baap-role-item.active {
+            border-color: #16a34a;
+            background: rgba(34, 197, 94, 0.15);
+            color: #bbf7d0;
+            box-shadow: 0 0 14px rgba(34, 197, 94, 0.16);
+            transform: none;
+        }
+
+        .baap-role-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .baap-role-item .level {
+            font-size: 0.68rem;
+            font-weight: 900;
+            letter-spacing: 0.2px;
+            text-transform: none;
+            white-space: normal;
+            line-height: 1.15;
+            overflow-wrap: anywhere;
+        }
+
+        .baap-role-item .info-trigger {
+            min-width: 1.02rem;
+            min-height: 1.02rem;
+            font-size: 0.66rem;
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.32);
+            color: #86efac;
+        }
+
+        .baap-extra-facts {
+            display: none;
+        }
+
         .classif-item {
             padding: 1rem;
             text-align: center;
@@ -1244,6 +1323,45 @@
             flex-wrap: wrap;
         }
 
+        .facts-panel-head {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .facts-panel-head .w6-label {
+            margin-bottom: 0;
+        }
+
+        .editor-toolbar.editor-toolbar-inline {
+            margin-left: auto;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            border-bottom: 1px solid var(--border);
+            padding: 4px 6px;
+            gap: 2px;
+            flex-wrap: nowrap;
+            background: #1e293b;
+        }
+
+        .editor-toolbar.editor-toolbar-inline .editor-btn {
+            min-width: 28px;
+            min-height: 28px;
+            height: 28px;
+            font-size: 0.8rem;
+        }
+
+        .editor-toolbar.editor-toolbar-inline .btn-list {
+            font-size: 0.72rem;
+            padding: 0 6px;
+        }
+
+        .editor-toolbar.editor-toolbar-inline .toolbar-sep {
+            margin: 0 3px;
+            height: 16px;
+        }
+
         .editor-btn {
             background: transparent;
             border: 1px solid transparent;
@@ -1470,6 +1588,16 @@
                 min-width: 120px;
             }
 
+            .baap-role-selector {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                overflow-x: hidden;
+            }
+
+            .ws-role-selector {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+                overflow-x: hidden;
+            }
+
             .editor-btn {
                 min-width: 40px;
                 height: 40px;
@@ -1505,6 +1633,14 @@
 
             .classif-selector {
                 grid-template-columns: 1fr;
+            }
+
+            .baap-role-selector {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+            }
+
+            .ws-role-selector {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
             }
 
             .form-grid {
@@ -1832,21 +1968,22 @@
 
     <main>
         <nav class="sidebar">
-            <div class="nav-item active" onclick="App.nav(0)"><span>⚙️</span> 1. CONFIGURATION</div>
-            <div class="nav-item" onclick="App.nav(1)"><span>📝</span> 2. FAITS</div>
-            <div class="nav-item" onclick="App.nav(2)"><span>🔬</span> 3. ANALYSE</div>
-            <div class="nav-item" onclick="App.nav(3)"><span>🎯</span> 4. RECOMMANDATIONS</div>
+            <div class="nav-item active" data-tab="0" onclick="App.nav(0)"><span>⚙️</span> 0. CONFIGURATION</div>
+            <div class="nav-item" data-tab="1" onclick="App.nav(1)"><span>📝</span> 1. FAITS</div>
+            <div class="nav-item" data-tab="2" onclick="App.nav(2)"><span>🔬</span> 2. ANALYSE</div>
+            <div class="nav-item" data-tab="3" onclick="App.nav(3)"><span>🎯</span> 3. RECOMMANDATIONS</div>
+            <div id="nav-qwi" class="nav-item" data-tab="4" onclick="App.nav(4)" style="display: none;"><span>🧭</span> 4. AVIS QWI / WEAPONS SCHOOL</div>
             <div class="nav-item nav-workflow-link" onclick="WorkflowGuide.open()"
                 title="Afficher le workflow complet création, validation, diffusion">
                 <span>🧭</span> Workflow AAR
             </div>
-            <div class="nav-item nav-preview-link" onclick="App.nav(4)">
+            <div class="nav-item nav-preview-link" data-tab="5" onclick="App.nav(5)">
                 <span>👁️</span> VISUALISATION / PDF
             </div>
         </nav>
 
         <div id="view-header" class="content-pane active">
-            <h2 style="margin-bottom: 1.5rem;">1. CONFIGURATION</h2>
+            <h2 style="margin-bottom: 1.5rem;">0. CONFIGURATION</h2>
 
             <div class="form-group">
                 <div class="classif-selector">
@@ -1872,8 +2009,8 @@
                     <div class="report-kind-selector">
                         <div class="report-kind-item" data-kind="FLASH" onclick="App.handleReportKindClick(event, 'FLASH')">
                             <div class="report-kind-head">
-                                <span class="level">AAR FLASH</span>
-                                <button type="button" class="info-trigger" data-tooltip-key="REPORT_KIND_FLASH" aria-label="Info AAR Flash">ⓘ</button>
+                                <span class="level">AAR BAAP</span>
+                                <button type="button" class="info-trigger" data-tooltip-key="REPORT_KIND_FLASH" aria-label="Info AAR BAAP">ⓘ</button>
                             </div>
                         </div>
                         <div class="report-kind-item" data-kind="CONSOLIDE" onclick="App.handleReportKindClick(event, 'CONSOLIDE')">
@@ -1946,9 +2083,14 @@
                         <label>Flotte <span class="required-star">*</span></label>
                         <select id="meta-flotte" onchange="App.updateFleet(this.value)" title="Flotte concernée">
                             <option value="">-- Sélectionner --</option>
-                            <option value="A-400M">A-400M</option>
-                            <option value="C-130J">C-130J</option>
-                            <option value="CN-235">CN-235</option>
+                            <option value="A400M">A400M</option>
+                            <option value="C130J">C130J</option>
+                            <option value="C130H">C130H</option>
+                            <option value="CN235">CN235</option>
+                            <option value="DHC6">DHC6</option>
+                            <option value="Falcon">Falcon</option>
+                            <option value="A330">A330</option>
+                            <option value="TBM700">TBM700</option>
                             <option value="AUTRE">AUTRE</option>
                         </select>
                         <input type="text" id="meta-flotte-autre" placeholder="Précisez la flotte..."
@@ -1992,7 +2134,7 @@
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" style="display:none;">
                     <label>Type</label>
                     <select id="meta-mission-type" onchange="App.updateMissionType(this.value)">
                         <option value="">-- Sélectionner --</option>
@@ -2045,7 +2187,7 @@
                 <div class="form-group" style="margin-top: 1rem;">
                     <label>Hashtags</label>
                     <div class="combo-box" id="hashtag-search-combo">
-                        <input type="search" id="meta-hashtag-search" placeholder="Rechercher ou ajouter un hashtag..."
+                        <input type="search" id="meta-hashtag-search" placeholder="Rechercher ou ajouter un hashtag..." value="#"
                             autocomplete="off" onfocus="App.openHashtagMenu()"
                             oninput="App.filterHashtags(this.value)"
                             onkeydown="App.handleHashtagSearchKeydown(event)">
@@ -2074,22 +2216,15 @@
         </div>
 
                 <div id="view-facts" class="content-pane"
-                    style="overflow-y: auto; max-height: calc(var(--app-height) - 120px); padding-bottom: 100px; padding-top: 0;">
+                    style="overflow-y: auto; max-height: calc(var(--app-height) - 72px); padding-bottom: 1.5rem; padding-top: 0;">
             <div
-                style="position: sticky; top: 0; background: var(--bg-main); z-index: 10; padding-bottom: 1rem; padding-top: 2rem;">
-                <h2 style="margin-bottom: 0.5rem;">2. FAITS</h2>
-                <div class="w6-tabs">
-                    <div id="tab-what" class="w6-tab" onclick="App.insertFactsHeading('WHAT?', 'what')">WHAT?</div>
-                    <div id="tab-why" class="w6-tab" onclick="App.insertFactsHeading('WHY?', 'why')">WHY?</div>
-                    <div id="tab-when" class="w6-tab" onclick="App.insertFactsHeading('WHEN?', 'when')">WHEN?</div>
-                    <div id="tab-where" class="w6-tab" onclick="App.insertFactsHeading('WHERE?', 'where')">WHERE?</div>
-                    <div id="tab-who" class="w6-tab" onclick="App.insertFactsHeading('WHO?', 'who')">WHO?</div>
-                    <div id="tab-how" class="w6-tab" onclick="App.insertFactsHeading('HOW?', 'how')">HOW?</div>
-                </div>
+                style="position: sticky; top: 0; background: var(--bg-main); z-index: 10; padding-bottom: 0.6rem; padding-top: 1.2rem;">
+                <h2 style="margin-bottom: 1.35rem;">1. FAITS</h2>
+                <div id="baap-role-selector" class="baap-role-selector"></div>
             </div>
 
-            <div class="card" style="padding: 1rem;">
-                <div class="w6-label" style="margin-bottom: 0.6rem;">Saisie libre des faits</div>
+            <div id="facts-main-card" class="card" style="padding: 1rem;">
+                <div class="w6-label" style="margin-bottom: 0.6rem;">What? Why? When? Where? Who? How?</div>
                 <div class="editor-container">
                     <div class="editor-toolbar">
                         <button class="editor-btn btn-bold" onclick="App.exec('bold')" title="Bold">B</button>
@@ -2113,7 +2248,7 @@
         </div>
 
         <div id="view-analysis" class="content-pane">
-            <h2 style="margin-bottom: 1.5rem;">3. ANALYSE</h2>
+            <h2 style="margin-bottom: 1.5rem;">2. ANALYSE</h2>
             <div class="card" style="border-left: 4px solid var(--warning);">
                 <div class="card-header"
                     style="color: var(--warning); text-transform: none; font-size: 0.85rem; line-height: 1.4;">
@@ -2145,7 +2280,7 @@
                     style="overflow-y: auto; max-height: calc(var(--app-height) - 120px); padding-bottom: 100px; padding-top: 0;">
             <div
                 style="position: sticky; top: 0; background: var(--bg-main); z-index: 10; padding-bottom: 1rem; padding-top: 2rem;">
-                <h2 style="margin-bottom: 0.5rem;">4. RECOMMANDATIONS</h2>
+                <h2 style="margin-bottom: 0.5rem;">3. RECOMMANDATIONS</h2>
                 <div class="dorese-tabs">
                     <div id="tab-doctrine" class="dorese-tab" onclick="App.scrollToDorese('section-doctrine')">
                         <span class="letter">D</span> <span class="label">Doctrine</span>
@@ -2318,6 +2453,36 @@
             </div>
         </div>
 
+        <div id="view-qwi" class="content-pane"
+            style="overflow-y: auto; max-height: calc(var(--app-height) - 120px); padding-bottom: 100px; padding-top: 0;">
+            <div
+                style="position: sticky; top: 0; background: var(--bg-main); z-index: 10; padding-bottom: 1rem; padding-top: 2rem;">
+                <h2 style="margin-bottom: 0.5rem;">4. AVIS QWI / WEAPONS SCHOOL</h2>
+            </div>
+            <div id="section-qwi" class="dorese-section card" style="padding: 1rem;">
+                <div class="w6-label">AVIS QWI / WEAPONS SCHOOL</div>
+                <div class="editor-container">
+                    <div class="editor-toolbar">
+                        <button class="editor-btn btn-bold" onclick="App.exec('bold')" title="Bold">B</button>
+                        <button class="editor-btn btn-italic" onclick="App.exec('italic')" title="Italic">I</button>
+                        <button class="editor-btn btn-underline" onclick="App.exec('underline')"
+                            title="Underline">U</button>
+                        <div class="toolbar-sep"></div>
+                        <button class="editor-btn btn-h" onclick="App.exec('formatBlock', 'h1')">H1</button>
+                        <button class="editor-btn btn-h" onclick="App.exec('formatBlock', 'h2')">H2</button>
+                        <button class="editor-btn btn-h" onclick="App.exec('formatBlock', 'h3')">H3</button>
+                        <button class="editor-btn btn-h" onclick="App.exec('formatBlock', 'p')"
+                            title="Paragraphe">P</button>
+                        <div class="toolbar-sep"></div>
+                        <button class="editor-btn btn-list" onclick="App.exec('insertUnorderedList')"
+                            title="Bullet List">• List</button>
+                    </div>
+                    <div id="qwi-advice" class="editor-content" contenteditable="true"
+                        oninput="App.update('qwi.advice', this.innerHTML)"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="view-preview" class="content-pane" style="max-width: none; padding: 0;">
             <div class="preview-desk-container">
                 <table class="print-container">
@@ -2391,8 +2556,12 @@
                                         <div class="section-content" id="prev-recos">
                                         </div>
                                     </section>
+                                </div>
 
-                                    <section class="doc-section" style="margin-top: 32px;">
+                                <!-- PAGE 4 -->
+                                <div class="preview-page">
+                                    <div class="doc-classification sect-classif">NON PROTÉGÉ</div>
+                                    <section class="doc-section">
                                         <div class="section-title" style="border-left-color: var(--accent);">
                                             <h2>04. AVIS QWI / WEAPONS SCHOOL</h2>
                                         </div>
@@ -2410,7 +2579,7 @@
 
     </main>
 
-    <script src="./mission-config.js?v=20260317h"></script>
+    <script src="./mission-config.js?v=20260322c"></script>
     <script>
         const META_DEFAULTS = {
             title: "",
@@ -2445,7 +2614,25 @@
             tacExerciseAutre: ""
         };
 
-        const FACTS_DEFAULTS = { what: "", why: "", when: "", where: "", who: "", how: "", narrative: "", content: "" };
+        const FACTS_DEFAULTS = {
+            wsSelected: [],
+            what: "",
+            why: "",
+            when: "",
+            where: "",
+            who: "",
+            how: "",
+            narrative: "",
+            content: "",
+            baapSelected: [],
+            baapAirfield: "",
+            baapPilot: "",
+            baapLoadmaster: "",
+            baapMissionSupport: "",
+            baapIntel: "",
+            baapC2: "",
+            baapOther: ""
+        };
         const FACTS_HEADING_ITEMS = [
             { key: 'what', label: 'WHAT?' },
             { key: 'why', label: 'WHY?' },
@@ -2454,9 +2641,50 @@
             { key: 'who', label: 'WHO?' },
             { key: 'how', label: 'HOW?' }
         ];
+        const BAAP_FACTS_ITEMS = [
+            { key: 'airfield', label: '#airfield', hashtag: '#airfield', heading: 'AIRFIELD', factsKey: 'baapAirfield', tooltipKey: 'BAAP_ROLE_AIRFIELD' },
+            { key: 'pilot', label: '#pilot', hashtag: '#pilot', heading: 'PILOT', factsKey: 'baapPilot', tooltipKey: 'BAAP_ROLE_PILOT' },
+            { key: 'loadmaster', label: '#loadmaster', hashtag: '#loadmaster', heading: 'LOADMASTER', factsKey: 'baapLoadmaster', tooltipKey: 'BAAP_ROLE_LOADMASTER' },
+            { key: 'missionSupport', label: '#mission-support', hashtag: '#mission-support', heading: 'MISSION SUPPORT', factsKey: 'baapMissionSupport', tooltipKey: 'BAAP_ROLE_MISSION_SUPPORT' },
+            { key: 'intel', label: '#intel', hashtag: '#intel', heading: 'INTEL', factsKey: 'baapIntel', tooltipKey: 'BAAP_ROLE_INTEL' },
+            { key: 'c2', label: '#c2', hashtag: '#c2', heading: 'C2', factsKey: 'baapC2', tooltipKey: 'BAAP_ROLE_C2' },
+            { key: 'other', label: '#autre', hashtag: '#autre', heading: 'AUTRE', factsKey: 'baapOther', tooltipKey: 'BAAP_ROLE_OTHER' }
+        ];
+        const FACTS_ROLE_HASHTAGS = BAAP_FACTS_ITEMS
+            .map((item) => String(item.hashtag || '').trim())
+            .filter(Boolean);
+        const FACTS_ROLE_TOOLTIP_BY_HASHTAG = BAAP_FACTS_ITEMS.reduce((acc, item) => {
+            const tag = String(item.hashtag || '').trim();
+            if (!tag) return acc;
+            const normalizedTag = String(tag).toUpperCase();
+            if (item.tooltipKey) acc[normalizedTag] = item.tooltipKey;
+            return acc;
+        }, {});
+        const FACTS_ROLE_TOOLTIP_KEYS = BAAP_FACTS_ITEMS
+            .map((item) => String(item.tooltipKey || '').trim().toUpperCase())
+            .filter(Boolean);
+        const FACTS_ROLE_TOOLTIP_KEY_SET = new Set(FACTS_ROLE_TOOLTIP_KEYS);
+        const FACTS_ROLE_TOOLTIP_DYNAMIC_PREFIX = 'FACTS_HASHTAG_';
+        const BAAP_FACTS_BY_KEY = BAAP_FACTS_ITEMS.reduce((acc, item) => {
+            acc[item.key] = item;
+            return acc;
+        }, {});
+        const WS_FACTS_ITEMS = [
+            { key: 'what', label: 'What?', heading: 'WHAT?', factsKey: 'what' },
+            { key: 'why', label: 'Why?', heading: 'WHY?', factsKey: 'why' },
+            { key: 'when', label: 'When?', heading: 'WHEN?', factsKey: 'when' },
+            { key: 'where', label: 'Where?', heading: 'WHERE?', factsKey: 'where' },
+            { key: 'who', label: 'Who?', heading: 'WHO?', factsKey: 'who' },
+            { key: 'how', label: 'How?', heading: 'HOW?', factsKey: 'how' }
+        ];
+        const WS_FACTS_BY_KEY = WS_FACTS_ITEMS.reduce((acc, item) => {
+            acc[item.key] = item;
+            return acc;
+        }, {});
         const ANALYSIS_DEFAULTS = { content: "" };
         const RECOS_DEFAULTS = { doctrine: "", organisation: "", rh: "", equipements: "", soutien: "", entrainement: "" };
         const QWI_DEFAULTS = { advice: "" };
+        const FLEET_OPTIONS = ['A400M', 'C130J', 'C130H', 'CN235', 'DHC6', 'Falcon', 'A330', 'TBM700'];
 
         const FALLBACK_MISSION_CONFIG = {
             allCountries: ['France'],
@@ -2475,7 +2703,9 @@
             ],
             tacOperations: ['Proche et Moyen Orient (PMO)'],
             tacExercises: ['TRAINING', 'ATLC', 'TLP', 'ETAP-C Single Ship', 'ETAP-C Multiple Ship'],
-            hashtags: ['#RETEX'],
+            hashtags: [...FACTS_ROLE_HASHTAGS, '#RETEX'],
+            factsHashtags: [...FACTS_ROLE_HASHTAGS],
+            factsHashtagTooltipMap: { ...FACTS_ROLE_TOOLTIP_BY_HASHTAG },
             logAirfieldsByCountry: {
                 France: [
                     'LFOE Evreux',
@@ -2496,12 +2726,40 @@
         const MISSION_CATALOG_KEY = 'aar_mission_catalog_v1';
         const DORESE_DEFINITIONS = {
             REPORT_KIND_FLASH: {
-                title: "AAR FLASH",
-                text: "Diffusion rapide, à utiliser pour des RETEX rapides et à chaud, ne nécessitant pas d'analyse particulière. Envoie directement l'AAR sur le AAR Reader sans relecture QWI."
+                title: "AAR BAAP",
+                text: "à utiliser pour des AAR qui concernent les techniques et les procédures, ou tout autre élément pouvant servir aux opérations de futurs équipages. Envoie directement l'AAR sur le AAR Reader sans relecture QWI."
             },
             REPORT_KIND_CONSOLIDE: {
                 title: "AAR WEAPONS SCHOOL",
-                text: "Version Weapons School, à utiliser pour des AAR complets, nécessitant plus d'analyse. Envoie d'abord l'AAR pour relecture QWI avant diffusion sur l'AAR Reader."
+                text: "à utiliser pour des AAR qui concerne la tactique. Envoie d'abord l'AAR pour relecture QWI avant diffusion sur l'AAR Reader."
+            },
+            BAAP_ROLE_AIRFIELD: {
+                title: "Airfield",
+                text: "à utiliser si le contenu peut servir au remplissage d'un airfield survey."
+            },
+            BAAP_ROLE_PILOT: {
+                title: "Pilot",
+                text: "à utiliser lorsque l'événement touche les modes d'action suivants : aérotransport, aéroportage, aérolargage, ravitaillement en vol, MEDEVAC, RESEVAC ou ISR."
+            },
+            BAAP_ROLE_LOADMASTER: {
+                title: "Loadmaster",
+                text: "À utiliser pour tout ce qui concerne le chargement, déchargement, arrimage, refueling, etc..."
+            },
+            BAAP_ROLE_MISSION_SUPPORT: {
+                title: "Mission Support",
+                text: "à utiliser pour tout ce qui concerne l'assistance, l'hébergement, le transport, la nourriture ou les équipements individuels."
+            },
+            BAAP_ROLE_INTEL: {
+                title: "Intel",
+                text: "à utiliser pour tout événement que vous transmettriez à votre officier renseignement. Attention à la classification!"
+            },
+            BAAP_ROLE_C2: {
+                title: "C2",
+                text: "À utiliser pour toute problématique qui concerne la chaîne C2 (Commandant d'Escadron, Commandant d'Escadre, BAAP, TACON...)."
+            },
+            BAAP_ROLE_OTHER: {
+                title: "Autre",
+                text: "Pour tout autre événement non lié aux autres catégories."
             },
             DORESE_D: {
                 title: "D - Doctrine",
@@ -2528,6 +2786,11 @@
                 text: "Tout ce qui touche à l'instruction, à l'entraînement, à la mise en situation, à la répétition des procédures et à la préparation opérationnelle.\nQuestion à se poser : faut-il mieux entraîner, davantage entraîner, ou entraîner différemment ?"
             }
         };
+        const STATIC_TOOLTIP_DEFINITION_KEYS = Object.keys(DORESE_DEFINITIONS);
+        const DEFAULT_TOOLTIP_COMMENTS = Object.freeze(STATIC_TOOLTIP_DEFINITION_KEYS.reduce((acc, key) => {
+            acc[key] = String(DORESE_DEFINITIONS[key]?.text || '');
+            return acc;
+        }, {}));
 
         const DialogUI = (() => {
             let overlay = null;
@@ -2715,7 +2978,7 @@
                 showTacOperationMenu: false,
                 tacExerciseSearch: "",
                 showTacExerciseMenu: false,
-                hashtagSearch: "",
+                hashtagSearch: "#",
                 showHashtagMenu: false,
                 isExternalEditor: false
             },
@@ -2727,6 +2990,24 @@
                     .replace(/[\u0300-\u036f]/g, '')
                     .trim()
                     .toUpperCase();
+            },
+
+            normalizeFleetValue: (value) => {
+                const raw = String(value || '').trim();
+                if (!raw) return '';
+                if (App.normalizeKey(raw) === 'AUTRE') return 'AUTRE';
+                const token = App.normalizeKey(raw).replace(/[^A-Z0-9]/g, '');
+                const map = {
+                    A400M: 'A400M',
+                    C130J: 'C130J',
+                    C130H: 'C130H',
+                    CN235: 'CN235',
+                    DHC6: 'DHC6',
+                    FALCON: 'Falcon',
+                    A330: 'A330',
+                    TBM700: 'TBM700'
+                };
+                return map[token] || raw;
             },
 
             sanitizeRichHtml: (value) => {
@@ -2776,11 +3057,144 @@
                 return App.sanitizeRichHtml(html);
             },
 
-            getFactsContentHtml: (facts) => {
+            normalizeBaapSelection: (values) => {
+                const selected = new Set();
+                (Array.isArray(values) ? values : []).forEach((value) => {
+                    const hashtag = App.getFactsRoleHashtag(value);
+                    if (!hashtag) return;
+                    selected.add(App.normalizeKey(hashtag));
+                });
+                return App.getFactsRoleCatalog().filter((tag) => selected.has(App.normalizeKey(tag)));
+            },
+
+            normalizeWsSelection: (values) => {
+                const selected = new Set();
+                (Array.isArray(values) ? values : []).forEach((value) => {
+                    const key = String(value || '').trim();
+                    if (WS_FACTS_BY_KEY[key]) selected.add(key);
+                });
+                return WS_FACTS_ITEMS
+                    .map((item) => item.key)
+                    .filter((key) => selected.has(key));
+            },
+
+            getBaapFactsSelection: () => {
+                return App.normalizeBaapSelection(App.data?.facts?.baapSelected || []);
+            },
+
+            getFactsRoleCatalog: () => {
+                return App.getEffectiveFactsHashtags();
+            },
+
+            getFactsRoleHashtag: (value) => {
+                const key = String(value || '').trim();
+                const item = BAAP_FACTS_BY_KEY[key];
+                if (item) return App.normalizeHashtag(item.hashtag || item.label || '');
+                return App.normalizeHashtag(key);
+            },
+
+            getFactsRoleTooltipKey: (hashtag) => {
+                const normalized = String(App.normalizeHashtag(hashtag) || '').toUpperCase();
+                if (!normalized) return '';
+                const mapped = App.getEffectiveFactsHashtagTooltipMap();
+                return mapped[normalized] || FACTS_ROLE_TOOLTIP_BY_HASHTAG[normalized] || 'BAAP_ROLE_OTHER';
+            },
+
+            getFactsRoleSelectionFromHashtags: (hashtags) => {
+                const normalizedHashtagSet = new Set(
+                    App.normalizeHashtagArray(Array.isArray(hashtags) ? hashtags : [])
+                        .map((tag) => App.normalizeKey(tag))
+                );
+                return App.getFactsRoleCatalog()
+                    .filter((tag) => normalizedHashtagSet.has(App.normalizeKey(tag)));
+            },
+
+            syncFactsRolesWithHashtags: (options = {}) => {
+                const preserveLegacySelection = !!options.preserveLegacySelection;
+                const currentFactsSelection = App.normalizeBaapSelection(App.data?.facts?.baapSelected || []);
+                let nextHashtags = App.getCurrentHashtags();
+                let changed = false;
+
+                if (preserveLegacySelection) {
+                    const hashtagSet = new Set(nextHashtags.map((tag) => App.normalizeKey(tag)));
+                    currentFactsSelection.forEach((value) => {
+                        const tag = App.getFactsRoleHashtag(value);
+                        const normalizedTag = App.normalizeKey(tag);
+                        if (!tag || hashtagSet.has(normalizedTag)) return;
+                        hashtagSet.add(normalizedTag);
+                        nextHashtags.push(tag);
+                    });
+                    nextHashtags = App.normalizeHashtagArray(nextHashtags);
+                    if (JSON.stringify(nextHashtags) !== JSON.stringify(App.getCurrentHashtags())) {
+                        App.data.meta.hashtags = nextHashtags;
+                        App.syncLegacyHashtagFields();
+                        changed = true;
+                    }
+                }
+
+                const selectedFromHashtags = App.getFactsRoleSelectionFromHashtags(nextHashtags);
+                if (JSON.stringify(selectedFromHashtags) !== JSON.stringify(currentFactsSelection)) {
+                    App.data.facts.baapSelected = selectedFromHashtags;
+                    changed = true;
+                }
+
+                return changed;
+            },
+
+            getWsFactsSelection: () => {
+                return App.normalizeWsSelection(App.data?.facts?.wsSelected || []);
+            },
+
+            buildBaapFactsContent: (facts) => {
+                const source = (facts && typeof facts === 'object') ? facts : {};
+                const selected = App.normalizeBaapSelection(source.baapSelected || []);
+                const selectedSet = new Set(selected.map((value) => App.normalizeKey(value)));
+                let html = '';
+
+                BAAP_FACTS_ITEMS.forEach((item) => {
+                    const value = App.sanitizeRichHtml(source[item.factsKey] || '');
+                    const isSelected = selectedSet.has(App.normalizeKey(item.hashtag || item.label || ''));
+                    if (!isSelected && !value) return;
+                    if (!value) return;
+                    html += `<h1>${App.escapeHtmlText(item.heading)}</h1>${value}`;
+                });
+
+                return App.sanitizeRichHtml(html);
+            },
+
+            buildWsFactsContent: (facts) => {
+                const source = (facts && typeof facts === 'object') ? facts : {};
+                const selected = App.normalizeWsSelection(source.wsSelected || []);
+                const selectedSet = new Set(selected);
+                let html = '';
+
+                WS_FACTS_ITEMS.forEach((item) => {
+                    const value = App.sanitizeRichHtml(source[item.factsKey] || '');
+                    const isSelected = selectedSet.has(item.key);
+                    if (!isSelected && !value) return;
+                    if (!value) return;
+                    html += `<h1>${App.escapeHtmlText(item.heading)}</h1>${value}`;
+                });
+
+                return App.sanitizeRichHtml(html);
+            },
+
+            getFactsMainContentHtml: (facts) => {
                 const source = (facts && typeof facts === 'object') ? facts : {};
                 const content = App.sanitizeRichHtml(source.content || '');
                 if (content) return content;
                 return App.buildLegacyFactsContent(source);
+            },
+
+            getFactsContentHtml: (facts) => {
+                const source = (facts && typeof facts === 'object') ? facts : {};
+                const main = App.getFactsMainContentHtml(source);
+                if (main) return main;
+                const ws = App.buildWsFactsContent(source);
+                const baap = App.buildBaapFactsContent(source);
+                const blocks = [ws, baap].filter(Boolean);
+                if (!blocks.length) return '';
+                return App.sanitizeRichHtml(blocks.join('<p><br></p>'));
             },
 
             isFilled: (value) => {
@@ -2891,6 +3305,25 @@
                     : (Array.isArray(external.hashtags) && external.hashtags.length)
                     ? external.hashtags.filter(Boolean)
                     : FALLBACK_MISSION_CONFIG.hashtags;
+                const configuredFactsHashtags = (Array.isArray(externalCatalog.factsHashtags) && externalCatalog.factsHashtags.length)
+                    ? externalCatalog.factsHashtags.filter(Boolean)
+                    : (Array.isArray(external.factsHashtags) && external.factsHashtags.length)
+                    ? external.factsHashtags.filter(Boolean)
+                    : FACTS_ROLE_HASHTAGS;
+                const configuredFactsHashtagsFlag = !!externalCatalog.factsHashtagsConfigured
+                    || (Array.isArray(externalCatalog.factsHashtags) && externalCatalog.factsHashtags.length > 0)
+                    || !!external.factsHashtagsConfigured
+                    || (Array.isArray(external.factsHashtags) && external.factsHashtags.length > 0);
+                const configuredFactsHashtagTooltipMap = (externalCatalog.factsHashtagTooltipMap && typeof externalCatalog.factsHashtagTooltipMap === 'object')
+                    ? externalCatalog.factsHashtagTooltipMap
+                    : (external.factsHashtagTooltipMap && typeof external.factsHashtagTooltipMap === 'object')
+                    ? external.factsHashtagTooltipMap
+                    : FACTS_ROLE_TOOLTIP_BY_HASHTAG;
+                const configuredTooltipComments = (externalCatalog.tooltipComments && typeof externalCatalog.tooltipComments === 'object')
+                    ? externalCatalog.tooltipComments
+                    : (external.tooltipComments && typeof external.tooltipComments === 'object')
+                    ? external.tooltipComments
+                    : DEFAULT_TOOLTIP_COMMENTS;
                 const configuredAllAirfields = (Array.isArray(externalCatalog.oaci) && externalCatalog.oaci.length)
                     ? externalCatalog.oaci.filter(Boolean)
                     : (Array.isArray(external.allAirfields) && external.allAirfields.length)
@@ -2902,12 +3335,16 @@
                 const staticOaciCountryMap = App.buildOaciCountryMapFromByCountry(logAirfieldsByCountry);
                 const cachedCatalog = App.loadMissionCatalogFromStorage();
                 App.baseMissionCatalog = App.normalizeMissionCatalogObject({
-                    hashtags: configuredHashtags || [],
+                    hashtags: App.normalizeHashtagArray(configuredHashtags || []),
+                    factsHashtags: App.normalizeFactsHashtagArray(configuredFactsHashtags || []),
+                    factsHashtagsConfigured: configuredFactsHashtagsFlag,
+                    factsHashtagTooltipMap: configuredFactsHashtagTooltipMap,
                     countries: allCountries,
                     oaci: [...configuredAllAirfields, ...Object.keys(configuredOaciCountryMap || {})],
                     operations: tacOperations,
                     exercises: tacExercises,
-                    oaciCountryMap: { ...staticOaciCountryMap, ...configuredOaciCountryMap }
+                    oaciCountryMap: { ...staticOaciCountryMap, ...configuredOaciCountryMap },
+                    tooltipComments: configuredTooltipComments
                 });
                 App.dynamicMissionCatalog = App.compactDynamicMissionCatalog(cachedCatalog || {});
 
@@ -2919,6 +3356,10 @@
                     logAirfieldsByCountry,
                     oaciCountryMap: {},
                     hashtags: [],
+                    factsHashtags: [],
+                    factsHashtagsConfigured: false,
+                    factsHashtagTooltipMap: {},
+                    tooltipComments: {},
                     appsScript: {
                         webAppUrl: String(appsScriptCfg.webAppUrl || '').trim(),
                         accessKey: String(appsScriptCfg.accessKey || '').trim()
@@ -2932,6 +3373,7 @@
                 if (!App.data || typeof App.data !== 'object') App.data = {};
 
                 App.data.meta = { ...META_DEFAULTS, ...(App.data.meta || {}) };
+                App.data.meta.flotte = App.normalizeFleetValue(App.data.meta.flotte);
                 App.data.facts = { ...FACTS_DEFAULTS, ...(App.data.facts || {}) };
                 App.data.analysis = { ...ANALYSIS_DEFAULTS, ...(App.data.analysis || {}) };
                 App.data.recos = { ...RECOS_DEFAULTS, ...(App.data.recos || {}) };
@@ -2958,6 +3400,13 @@
                     ['facts', 'who'],
                     ['facts', 'how'],
                     ['facts', 'narrative'],
+                    ['facts', 'baapAirfield'],
+                    ['facts', 'baapPilot'],
+                    ['facts', 'baapLoadmaster'],
+                    ['facts', 'baapMissionSupport'],
+                    ['facts', 'baapIntel'],
+                    ['facts', 'baapC2'],
+                    ['facts', 'baapOther'],
                     ['analysis', 'content'],
                     ['recos', 'doctrine'],
                     ['recos', 'organisation'],
@@ -2977,7 +3426,24 @@
                     }
                 });
 
+                const wsAutoSelected = WS_FACTS_ITEMS
+                    .filter((item) => App.sanitizeRichHtml(App.data.facts[item.factsKey] || ''))
+                    .map((item) => item.key);
+                const normalizedWsSelection = App.normalizeWsSelection([
+                    ...(App.data.facts.wsSelected || []),
+                    ...wsAutoSelected
+                ]);
+                if (JSON.stringify(normalizedWsSelection) !== JSON.stringify(App.data.facts.wsSelected || [])) {
+                    App.data.facts.wsSelected = normalizedWsSelection;
+                    repairedRichText = true;
+                }
+
                 if (Object.prototype.hasOwnProperty.call(App.data.meta, 'pj')) delete App.data.meta.pj;
+
+                if (App.data.meta.flotte && App.data.meta.flotte !== 'AUTRE' && !FLEET_OPTIONS.includes(App.data.meta.flotte)) {
+                    if (!App.data.meta.flotteAutre) App.data.meta.flotteAutre = App.data.meta.flotte;
+                    App.data.meta.flotte = 'AUTRE';
+                }
 
                 const knownCountries = new Set(App.missionConfig.allCountries || []);
                 if (App.data.meta.logCountry && App.data.meta.logCountry !== 'AUTRE' && !knownCountries.has(App.data.meta.logCountry)) {
@@ -2997,6 +3463,7 @@
                         : App.collectLegacyHashtags(App.data.meta)
                 );
                 App.syncLegacyHashtagFields();
+                if (App.syncFactsRolesWithHashtags({ preserveLegacySelection: true })) repairedRichText = true;
                 App.data.meta.workflowStatus = App.normalizeWorkflowStatus(App.data.meta.workflowStatus);
                 App.data.meta.driveFileId = String(App.data.meta.driveFileId || '').trim();
                 App.data.meta.sentToQwiAt = String(App.data.meta.sentToQwiAt || '').trim();
@@ -3108,9 +3575,29 @@
             normalizeHashtag: (value) => {
                 let tag = String(value || '').trim();
                 if (!tag) return '';
-                tag = tag.replace(/\s+/g, '-');
-                if (!tag.startsWith('#')) tag = `#${tag}`;
-                return tag;
+                tag = tag.replace(/\s+/g, '');
+                tag = tag.replace(/^#+/, '');
+                if (!tag) return '';
+                return `#${tag}`;
+            },
+
+            sanitizeHashtagSearchInput: (value) => {
+                let raw = String(value || '');
+                raw = raw.replace(/\s+/g, '');
+                raw = raw.replace(/^#+/, '');
+                return `#${raw}`;
+            },
+
+            setHashtagSearchInput: (value, options = {}) => {
+                const sanitized = App.sanitizeHashtagSearchInput(value);
+                App.ui.hashtagSearch = sanitized;
+                const input = document.getElementById('meta-hashtag-search');
+                if (input && input.value !== sanitized) input.value = sanitized;
+                if (input && options.keepCaretAtEnd && document.activeElement === input) {
+                    const pos = sanitized.length;
+                    try { input.setSelectionRange(pos, pos); } catch (_) { /* noop */ }
+                }
+                return sanitized;
             },
 
             normalizeHashtagArray: (values) => {
@@ -3125,6 +3612,165 @@
                     out.push(normalized);
                 });
                 return out.sort((a, b) => a.localeCompare(b, 'fr'));
+            },
+
+            normalizeFactsHashtagArray: (values) => {
+                const out = [];
+                const seen = new Set();
+                (Array.isArray(values) ? values : []).forEach((value) => {
+                    const normalized = App.normalizeHashtag(value);
+                    if (!normalized) return;
+                    const key = App.normalizeKey(normalized);
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    out.push(normalized);
+                });
+                return out;
+            },
+
+            getDefaultFactsHashtags: () => {
+                return App.normalizeFactsHashtagArray(FACTS_ROLE_HASHTAGS);
+            },
+
+            getDefaultFactsHashtagTooltipMap: () => {
+                return App.normalizeFactsHashtagTooltipMap(
+                    App.missionConfig?.factsHashtagTooltipMap || App.baseMissionCatalog?.factsHashtagTooltipMap || FACTS_ROLE_TOOLTIP_BY_HASHTAG,
+                    App.getDefaultFactsHashtags()
+                );
+            },
+
+            getEffectiveFactsHashtags: () => {
+                const configured = !!App.missionConfig?.factsHashtagsConfigured;
+                const values = App.normalizeFactsHashtagArray(App.missionConfig?.factsHashtags || []);
+                if (configured) return values;
+                return App.getDefaultFactsHashtags();
+            },
+
+            normalizeTooltipCommentKey: (value) => {
+                return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_]/g, '');
+            },
+
+            isAllowedFactsTooltipKey: (value) => {
+                const key = App.normalizeTooltipCommentKey(value);
+                if (!key) return false;
+                return FACTS_ROLE_TOOLTIP_KEY_SET.has(key) || key.startsWith(FACTS_ROLE_TOOLTIP_DYNAMIC_PREFIX);
+            },
+
+            buildFactsTooltipKeyBaseFromHashtag: (hashtag) => {
+                const normalized = App.normalizeHashtag(hashtag);
+                if (!normalized) return '';
+                const suffix = String(normalized)
+                    .replace(/^#/, '')
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]+/g, '_')
+                    .replace(/^_+|_+$/g, '');
+                return `${FACTS_ROLE_TOOLTIP_DYNAMIC_PREFIX}${suffix || 'TAG'}`;
+            },
+
+            buildUniqueFactsTooltipKeyForHashtag: (hashtag, usedSet) => {
+                const base = App.buildFactsTooltipKeyBaseFromHashtag(hashtag);
+                if (!base) return '';
+                if (!(usedSet instanceof Set)) return base;
+                if (!usedSet.has(base)) return base;
+                let idx = 2;
+                while (usedSet.has(`${base}_${idx}`)) idx += 1;
+                return `${base}_${idx}`;
+            },
+
+            normalizeFactsHashtagTooltipMap: (input, factsHashtags) => {
+                const src = (input && typeof input === 'object') ? input : {};
+                const list = App.normalizeFactsHashtagArray(Array.isArray(factsHashtags) ? factsHashtags : []);
+                const sourceMap = {};
+                Object.keys(src).forEach((rawHashtag) => {
+                    const hashtag = App.normalizeHashtag(rawHashtag);
+                    if (!hashtag) return;
+                    const tooltipKey = App.normalizeTooltipCommentKey(src[rawHashtag]);
+                    if (!App.isAllowedFactsTooltipKey(tooltipKey)) return;
+                    sourceMap[String(hashtag).toUpperCase()] = tooltipKey;
+                });
+                const out = {};
+                const usedKeys = new Set();
+                list.forEach((hashtag) => {
+                    const hashtagUpper = String(hashtag || '').toUpperCase();
+                    const defaultKey = FACTS_ROLE_TOOLTIP_BY_HASHTAG[hashtagUpper] || '';
+                    let nextKey = sourceMap[hashtagUpper] || defaultKey;
+                    if (!App.isAllowedFactsTooltipKey(nextKey)) nextKey = '';
+                    if (!defaultKey && nextKey === 'BAAP_ROLE_OTHER') {
+                        nextKey = '';
+                    }
+                    if (!nextKey || usedKeys.has(nextKey)) {
+                        nextKey = App.buildUniqueFactsTooltipKeyForHashtag(hashtag, usedKeys) || defaultKey || 'BAAP_ROLE_OTHER';
+                    }
+                    usedKeys.add(nextKey);
+                    out[hashtagUpper] = nextKey;
+                });
+                return out;
+            },
+
+            getEffectiveFactsHashtagTooltipMap: () => {
+                const factsHashtags = App.getEffectiveFactsHashtags();
+                return App.normalizeFactsHashtagTooltipMap(
+                    App.missionConfig?.factsHashtagTooltipMap || App.getDefaultFactsHashtagTooltipMap(),
+                    factsHashtags
+                );
+            },
+
+            normalizeTooltipCommentsMap: (input) => {
+                const src = (input && typeof input === 'object') ? input : {};
+                const out = {};
+                Object.keys(src).forEach((rawKey) => {
+                    const key = App.normalizeTooltipCommentKey(rawKey);
+                    if (!key) return;
+                    const normalized = String(src[rawKey] || '').replace(/\r\n/g, '\n').trim();
+                    if (!normalized) return;
+                    out[key] = normalized;
+                });
+                return out;
+            },
+
+            syncFactsTooltipDefinitions: () => {
+                const factsHashtags = App.getEffectiveFactsHashtags();
+                const map = App.getEffectiveFactsHashtagTooltipMap();
+                const effectiveComments = App.normalizeTooltipCommentsMap({
+                    ...DEFAULT_TOOLTIP_COMMENTS,
+                    ...(App.missionConfig?.tooltipComments || {})
+                });
+                const activeFactsKeys = new Set();
+
+                factsHashtags.forEach((hashtag) => {
+                    const normalizedHashtag = App.normalizeHashtag(hashtag);
+                    const hashtagUpper = String(normalizedHashtag || '').toUpperCase();
+                    if (!normalizedHashtag || !hashtagUpper) return;
+                    const tooltipKey = App.normalizeTooltipCommentKey(
+                        map[hashtagUpper] || FACTS_ROLE_TOOLTIP_BY_HASHTAG[hashtagUpper] || 'BAAP_ROLE_OTHER'
+                    );
+                    if (!App.isAllowedFactsTooltipKey(tooltipKey)) return;
+                    activeFactsKeys.add(tooltipKey);
+                    const current = DORESE_DEFINITIONS[tooltipKey] || {};
+                    DORESE_DEFINITIONS[tooltipKey] = {
+                        title: normalizedHashtag.replace(/^#/, ''),
+                        text: String(effectiveComments[tooltipKey] || current.text || DEFAULT_TOOLTIP_COMMENTS.BAAP_ROLE_OTHER || '')
+                    };
+                });
+
+                Object.keys(DORESE_DEFINITIONS).forEach((key) => {
+                    if (!key.startsWith(FACTS_ROLE_TOOLTIP_DYNAMIC_PREFIX)) return;
+                    if (activeFactsKeys.has(key)) return;
+                    delete DORESE_DEFINITIONS[key];
+                });
+            },
+
+            applyTooltipComments: () => {
+                const merged = App.normalizeTooltipCommentsMap({
+                    ...DEFAULT_TOOLTIP_COMMENTS,
+                    ...(App.missionConfig?.tooltipComments || {})
+                });
+                App.syncFactsTooltipDefinitions();
+                Object.keys(DORESE_DEFINITIONS).forEach((key) => {
+                    const def = DORESE_DEFINITIONS[key];
+                    if (!def) return;
+                    def.text = merged[key] || DEFAULT_TOOLTIP_COMMENTS[key] || def.text || '';
+                });
             },
 
             collectLegacyHashtags: (meta) => {
@@ -3193,11 +3839,16 @@
                     if (!parsed || typeof parsed !== 'object') return null;
                     return {
                         hashtags: App.normalizeHashtagArray(parsed.hashtags || []),
+                        factsHashtags: App.normalizeFactsHashtagArray(parsed.factsHashtags || []),
+                        factsHashtagsConfigured: !!parsed.factsHashtagsConfigured
+                            || (Array.isArray(parsed.factsHashtags) && parsed.factsHashtags.length > 0),
+                        factsHashtagTooltipMap: App.normalizeFactsHashtagTooltipMap(parsed.factsHashtagTooltipMap || {}, parsed.factsHashtags || []),
                         countries: App.normalizeCatalogTextArray(parsed.countries || []),
                         oaci: App.normalizeOaciArray(parsed.oaci || []),
                         operations: App.normalizeCatalogTextArray(parsed.operations || []),
                         exercises: App.normalizeCatalogTextArray(parsed.exercises || []),
-                        oaciCountryMap: App.normalizeOaciCountryMap(parsed.oaciCountryMap || {})
+                        oaciCountryMap: App.normalizeOaciCountryMap(parsed.oaciCountryMap || {}),
+                        tooltipComments: App.normalizeTooltipCommentsMap(parsed.tooltipComments || {})
                     };
                 } catch (error) {
                     console.warn('Mission catalog parse failed:', error);
@@ -3274,12 +3925,18 @@
                 const src = (catalog && typeof catalog === 'object') ? catalog : {};
                 const out = {
                     hashtags: App.normalizeHashtagArray(src.hashtags || []),
+                    factsHashtags: App.normalizeFactsHashtagArray(src.factsHashtags || []),
+                    factsHashtagsConfigured: !!src.factsHashtagsConfigured
+                        || (Array.isArray(src.factsHashtags) && src.factsHashtags.length > 0),
+                    factsHashtagTooltipMap: {},
                     countries: App.normalizeCatalogTextArray(src.countries || []),
                     oaci: App.normalizeOaciArray(src.oaci || []),
                     operations: App.normalizeCatalogTextArray(src.operations || []),
                     exercises: App.normalizeCatalogTextArray(src.exercises || []),
-                    oaciCountryMap: App.normalizeOaciCountryMap(src.oaciCountryMap || {})
+                    oaciCountryMap: App.normalizeOaciCountryMap(src.oaciCountryMap || {}),
+                    tooltipComments: App.normalizeTooltipCommentsMap(src.tooltipComments || {})
                 };
+                out.factsHashtagTooltipMap = App.normalizeFactsHashtagTooltipMap(src.factsHashtagTooltipMap || {}, out.factsHashtags || []);
                 const mapKeys = Object.keys(out.oaciCountryMap || {});
                 if (mapKeys.length) {
                     out.oaci = App.normalizeOaciArray([...(out.oaci || []), ...mapKeys]);
@@ -3296,9 +3953,31 @@
                     const baseSet = new Set((Array.isArray(baseValues) ? baseValues : []).map((value) => App.normalizeKey(value)));
                     return normalizer((Array.isArray(values) ? values : []).filter((value) => !baseSet.has(App.normalizeKey(value))));
                 };
+                const baseFactsValues = App.normalizeFactsHashtagArray(base.factsHashtags || []);
+                const currentFactsValues = App.normalizeFactsHashtagArray(normalized.factsHashtags || []);
+                const sameFactsValues = baseFactsValues.length === currentFactsValues.length
+                    && baseFactsValues.every((value, idx) => App.normalizeKey(value) === App.normalizeKey(currentFactsValues[idx]));
+                const baseFactsConfigured = !!base.factsHashtagsConfigured;
+                const currentFactsConfigured = !!normalized.factsHashtagsConfigured;
+                const baseFactsTooltipMap = App.normalizeFactsHashtagTooltipMap(base.factsHashtagTooltipMap || {}, baseFactsValues);
+                const currentFactsTooltipMap = App.normalizeFactsHashtagTooltipMap(normalized.factsHashtagTooltipMap || {}, currentFactsValues);
+                const sameFactsTooltipMap = JSON.stringify(baseFactsTooltipMap) === JSON.stringify(currentFactsTooltipMap);
+                const mustPersistFactsCatalog = !sameFactsValues || baseFactsConfigured !== currentFactsConfigured || !sameFactsTooltipMap;
 
                 return {
                     hashtags: dropBaseValues(normalized.hashtags, base.hashtags, App.normalizeHashtagArray),
+                    factsHashtags: (() => {
+                        if (!mustPersistFactsCatalog) return [];
+                        return currentFactsValues;
+                    })(),
+                    factsHashtagsConfigured: (() => {
+                        if (!mustPersistFactsCatalog) return false;
+                        return currentFactsConfigured;
+                    })(),
+                    factsHashtagTooltipMap: (() => {
+                        if (sameFactsTooltipMap) return {};
+                        return currentFactsTooltipMap;
+                    })(),
                     countries: dropBaseValues(normalized.countries, base.countries, App.normalizeCatalogTextArray),
                     oaci: dropBaseValues(normalized.oaci, base.oaci, App.normalizeOaciArray),
                     operations: dropBaseValues(normalized.operations, base.operations, App.normalizeCatalogTextArray),
@@ -3314,6 +3993,19 @@
                             out[oaci] = country;
                         });
                         return App.normalizeOaciCountryMap(out);
+                    })(),
+                    tooltipComments: (() => {
+                        const out = {};
+                        const baseMap = App.normalizeTooltipCommentsMap(base.tooltipComments || {});
+                        const currentMap = App.normalizeTooltipCommentsMap(normalized.tooltipComments || {});
+                        Object.keys(currentMap).forEach((key) => {
+                            const value = String(currentMap[key] || '').trim();
+                            const baseValue = String(baseMap[key] || '').trim();
+                            if (!value) return;
+                            if (value === baseValue) return;
+                            out[key] = value;
+                        });
+                        return App.normalizeTooltipCommentsMap(out);
                     })()
                 };
             },
@@ -3325,8 +4017,28 @@
                     ...(base.oaciCountryMap || {}),
                     ...(dynamic.oaciCountryMap || {})
                 });
+                const mergedTooltipComments = App.normalizeTooltipCommentsMap({
+                    ...DEFAULT_TOOLTIP_COMMENTS,
+                    ...(base.tooltipComments || {}),
+                    ...(dynamic.tooltipComments || {})
+                });
+                const effectiveFactsHashtags = dynamic.factsHashtagsConfigured
+                    ? App.normalizeFactsHashtagArray(dynamic.factsHashtags || [])
+                    : App.normalizeFactsHashtagArray(base.factsHashtags || []);
+                const factsConfigured = !!(dynamic.factsHashtagsConfigured || base.factsHashtagsConfigured);
+                const mergedFactsHashtagTooltipMap = App.normalizeFactsHashtagTooltipMap({
+                    ...(base.factsHashtagTooltipMap || {}),
+                    ...(dynamic.factsHashtagTooltipMap || {})
+                }, effectiveFactsHashtags);
 
-                App.missionConfig.hashtags = App.normalizeHashtagArray([...(base.hashtags || []), ...(dynamic.hashtags || [])]);
+                App.missionConfig.factsHashtags = effectiveFactsHashtags;
+                App.missionConfig.factsHashtagsConfigured = factsConfigured;
+                App.missionConfig.factsHashtagTooltipMap = mergedFactsHashtagTooltipMap;
+                App.missionConfig.hashtags = App.normalizeHashtagArray([
+                    ...(base.hashtags || []),
+                    ...(dynamic.hashtags || []),
+                    ...effectiveFactsHashtags
+                ]);
                 App.missionConfig.allCountries = App.normalizeCatalogTextArray([...(base.countries || []), ...(dynamic.countries || [])]);
                 App.missionConfig.oaciCountryMap = mergedOaciCountryMap;
                 App.missionConfig.allAirfields = App.normalizeOaciArray([
@@ -3336,6 +4048,7 @@
                 ]);
                 App.missionConfig.tacOperations = App.normalizeCatalogTextArray([...(base.operations || []), ...(dynamic.operations || [])]);
                 App.missionConfig.tacExercises = App.normalizeCatalogTextArray([...(base.exercises || []), ...(dynamic.exercises || [])]);
+                App.missionConfig.tooltipComments = mergedTooltipComments;
 
                 if (persist) App.saveMissionCatalogToStorage();
 
@@ -3346,6 +4059,7 @@
                 Object.keys(App.missionConfig.logAirfieldsByCountry || {}).forEach((country) => {
                     App.countryNameLookup[App.normalizeKey(country)] = country;
                 });
+                App.applyTooltipComments();
             },
 
             applyDynamicHashtagCatalog: (values) => {
@@ -3359,10 +4073,24 @@
 
                 App.dynamicMissionCatalog = App.compactDynamicMissionCatalog({
                     hashtags: replace ? src.hashtags : [...currentDynamic.hashtags, ...src.hashtags],
+                    factsHashtags: replace
+                        ? src.factsHashtags
+                        : (src.factsHashtagsConfigured
+                            ? src.factsHashtags
+                            : currentDynamic.factsHashtags),
+                    factsHashtagsConfigured: replace
+                        ? !!src.factsHashtagsConfigured
+                        : (src.factsHashtagsConfigured || currentDynamic.factsHashtagsConfigured),
+                    factsHashtagTooltipMap: replace
+                        ? src.factsHashtagTooltipMap
+                        : { ...(currentDynamic.factsHashtagTooltipMap || {}), ...(src.factsHashtagTooltipMap || {}) },
                     countries: replace ? src.countries : [...currentDynamic.countries, ...src.countries],
                     oaci: replace ? src.oaci : [...currentDynamic.oaci, ...src.oaci],
                     operations: replace ? src.operations : [...currentDynamic.operations, ...src.operations],
                     exercises: replace ? src.exercises : [...currentDynamic.exercises, ...src.exercises],
+                    tooltipComments: replace
+                        ? src.tooltipComments
+                        : { ...(currentDynamic.tooltipComments || {}), ...(src.tooltipComments || {}) },
                     oaciCountryMap: replace
                         ? src.oaciCountryMap
                         : { ...(currentDynamic.oaciCountryMap || {}), ...(src.oaciCountryMap || {}) }
@@ -3610,7 +4338,8 @@
                         btn.addEventListener('click', () => App.removeHashtagSelection(btn.getAttribute('data-remove-hashtag')));
                     });
                 }
-                if (searchInput) searchInput.value = App.ui.hashtagSearch || '';
+                const nextSearch = App.setHashtagSearchInput(App.ui.hashtagSearch || '#');
+                if (searchInput && searchInput.value !== nextSearch) searchInput.value = nextSearch;
                 App.renderHashtagMenu();
             },
 
@@ -3666,7 +4395,7 @@
             openHashtagMenu: () => {
                 App.ui.showHashtagMenu = true;
                 const input = document.getElementById('meta-hashtag-search');
-                if (input) App.ui.hashtagSearch = input.value || '';
+                App.setHashtagSearchInput(input ? input.value : App.ui.hashtagSearch || '#');
                 App.renderHashtagMenu();
             },
 
@@ -3683,6 +4412,10 @@
 
             handleHashtagSearchKeydown: (event) => {
                 if (!event) return;
+                if (event.key === ' ' || event.code === 'Space') {
+                    event.preventDefault();
+                    return;
+                }
                 if (event.key === 'Enter') {
                     event.preventDefault();
                     App.commitHashtagSearch();
@@ -3695,7 +4428,7 @@
                 const input = document.getElementById('meta-hashtag-search');
                 const raw = input ? input.value : App.ui.hashtagSearch;
                 App.addHashtagSelection(raw);
-                if (input) input.value = '';
+                App.setHashtagSearchInput('#');
             },
 
             refreshHashtagHint: () => {
@@ -3715,17 +4448,17 @@
             },
 
             filterHashtags: (query) => {
-                App.ui.hashtagSearch = query || '';
+                App.setHashtagSearchInput(query || '#', { keepCaretAtEnd: true });
                 App.ui.showHashtagMenu = true;
                 App.renderHashtagMenu();
             },
 
             addHashtagSelection: (value) => {
                 const normalized = App.normalizeHashtag(value);
-                App.ui.hashtagSearch = '';
+                App.setHashtagSearchInput('#');
                 App.ui.showHashtagMenu = false;
                 const search = document.getElementById('meta-hashtag-search');
-                if (search) search.value = '';
+                if (search) search.value = App.ui.hashtagSearch;
                 if (!normalized) {
                     App.renderHashtagSelect();
                     App.refreshHashtagHint();
@@ -3737,8 +4470,10 @@
                     App.data.meta.hashtags = App.normalizeHashtagArray([...current, normalized]);
                     App.syncLegacyHashtagFields();
                 }
+                App.syncFactsRolesWithHashtags();
                 App.renderHashtagSelect();
                 App.refreshHashtagHint();
+                App.refreshFactsModeUi();
                 App.save();
                 return !exists;
             },
@@ -3748,8 +4483,10 @@
                 if (!target) return;
                 App.data.meta.hashtags = App.getCurrentHashtags().filter((tag) => App.normalizeKey(tag) !== App.normalizeKey(target));
                 App.syncLegacyHashtagFields();
+                App.syncFactsRolesWithHashtags();
                 App.renderHashtagSelect();
                 App.refreshHashtagHint();
+                App.refreshFactsModeUi();
                 App.save();
             },
 
@@ -3792,9 +4529,11 @@
                 App.setHashtagCatalog(next, true);
                 App.data.meta.hashtags = App.getCurrentHashtags().map((tag) => App.normalizeKey(tag) === App.normalizeKey(current) ? renamed : tag);
                 App.syncLegacyHashtagFields();
+                App.syncFactsRolesWithHashtags();
                 if (input) input.value = '';
                 App.renderHashtagSelect();
                 App.refreshHashtagHint();
+                App.refreshFactsModeUi();
                 App.save();
                 App.setHashtagAdminHint(`Hashtag renommé: ${current} -> ${renamed}`);
             },
@@ -3819,8 +4558,10 @@
                 App.setHashtagCatalog(next, true);
                 App.data.meta.hashtags = App.getCurrentHashtags().filter((tag) => App.normalizeKey(tag) !== App.normalizeKey(current));
                 App.syncLegacyHashtagFields();
+                App.syncFactsRolesWithHashtags();
                 App.renderHashtagSelect();
                 App.refreshHashtagHint();
+                App.refreshFactsModeUi();
                 App.save();
                 App.setHashtagAdminHint(`Hashtag supprimé: ${current}`);
             },
@@ -4018,8 +4759,8 @@
 
             refreshMissionVisibility: () => {
                 const m = App.data.meta;
-                const isLog = m.missionType === 'LOG';
-                const isTac = m.missionType === 'TAC';
+                const showLegacyTac = false;
+                const isTac = showLegacyTac && m.missionType === 'TAC';
                 const isTacOperations = isTac && m.tacContext === 'OPERATIONS';
                 const isTacExercise = isTac && m.tacContext === 'EXERCICE';
 
@@ -4175,6 +4916,8 @@
                 }
                 const repairedOnLoad = App.ensureDataShape();
                 if (!App.data.meta.date) App.data.meta.date = new Date().toISOString().split('T')[0];
+                const navQwi = document.getElementById('nav-qwi');
+                if (navQwi) navQwi.style.display = App.ui.isExternalEditor ? 'flex' : 'none';
 
                 // Bind Input Change Listener for Import
                 document.getElementById('file-input').addEventListener('change', App.importJSON);
@@ -4193,7 +4936,14 @@
 
                 App.renderForm();
                 if (repairedOnLoad) App.save();
-                App.nav(0);
+                const requestedInitialTab = (() => {
+                    const raw = new URLSearchParams(window.location.search).get('startTab');
+                    if (raw === null) return 0;
+                    const parsed = Number(raw);
+                    if (!Number.isFinite(parsed)) return 0;
+                    return Math.max(0, Math.min(5, Math.trunc(parsed)));
+                })();
+                App.nav(requestedInitialTab);
                 App.loadRemoteMissionCatalog(true);
 
                 window.addEventListener('online', () => { App.loadRemoteMissionCatalog(); });
@@ -4245,12 +4995,13 @@
             },
 
             updateFleet: (val) => {
-                App.data.meta.flotte = val;
-                if (val !== 'AUTRE') App.data.meta.flotteAutre = "";
+                const normalized = App.normalizeFleetValue(val);
+                App.data.meta.flotte = normalized;
+                if (normalized !== 'AUTRE') App.data.meta.flotteAutre = "";
                 const otherFleet = document.getElementById('meta-flotte-autre');
                 if (otherFleet) {
-                    otherFleet.style.display = (val === 'AUTRE') ? 'block' : 'none';
-                    if (val !== 'AUTRE') otherFleet.value = "";
+                    otherFleet.style.display = (normalized === 'AUTRE') ? 'block' : 'none';
+                    if (normalized !== 'AUTRE') otherFleet.value = "";
                 }
                 App.save();
             },
@@ -4266,8 +5017,18 @@
                 App.updateReportKind(kind);
             },
 
+            handleBaapRoleClick: (event, key) => {
+                if (event && event.target && event.target.closest('.info-trigger')) return;
+                App.toggleBaapFactsSection(key);
+            },
+
+            handleWsRoleClick: (event, key) => {
+                if (event && event.target && event.target.closest('.info-trigger')) return;
+                App.toggleWsFactsSection(key);
+            },
+
             getReportKindLabel: (kind) => {
-                return String(kind || '').toUpperCase() === 'FLASH' ? 'FLASH' : 'WEAPONS SCHOOL';
+                return String(kind || '').toUpperCase() === 'FLASH' ? 'BAAP' : 'WEAPONS SCHOOL';
             },
 
             normalizeWorkflowStatus: (status) => {
@@ -4288,6 +5049,38 @@
                 btn.setAttribute('aria-busy', busy ? 'true' : 'false');
                 btn.style.opacity = busy ? '0.7' : '';
                 btn.style.pointerEvents = busy ? 'none' : '';
+            },
+
+            buildQwiSendSuccessMessage: (workflowStatus) => {
+                const wsLine = workflowStatus === 'PENDING_QWI_REVIEW'
+                    ? "AAR WEAPONS SCHOOL : il sera visible uniquement après relecture et validation QWI."
+                    : "AAR BAAP : il est publié directement sur l'AAR Reader.";
+                return [
+                    "Votre AAR a bien été envoyé sur l'AAR HUB.",
+                    wsLine,
+                    "",
+                    "Important : envoyez maintenant l'email préparé vers l'adresse QWI DR.",
+                    "C'est indispensable pour alimenter aussi l'AAR Reader DR et éviter tout écart entre NP et DR."
+                ].join('\n');
+            },
+
+            openQwiDraftEmail: (workflowStatus) => {
+                const title = App.data.meta.title || "AAR";
+                const date = App.data.meta.date || "Unknown Date";
+                const reportKind = String(App.data.meta.reportKind || 'CONSOLIDE').toUpperCase() === 'FLASH' ? 'FLASH' : 'CONSOLIDE';
+                const reportKindLabel = App.getReportKindLabel(reportKind);
+                const rank = App.data.meta.grade === 'AUTRE' ? (App.data.meta.gradeAutre || "") : (App.data.meta.grade || "");
+                const identity = [rank, App.data.meta.nom || "", App.data.meta.prenom || ""].filter(Boolean).join(" ").trim() || "Unknown";
+                const portablePayload = JSON.stringify(App.buildPortablePayload());
+                const payloadBlock = `\n==================== AAR JSON PAYLOAD ====================\n---BEGIN-AAR-JSON---\n${portablePayload}\n---END-AAR-JSON---\n==========================================================`;
+                const recipients = 'ciet-qwi.contact.fct@intradef.gouv.fr';
+                const subject = `[AAR] [${reportKindLabel}] ${date} - ${title}`;
+                const diffusionLine = workflowStatus === 'PENDING_QWI_REVIEW'
+                    ? '- Statut HUB : En attente de relecture / publication QWI'
+                    : '- Statut HUB : Déjà publié sur le AAR Reader';
+                const body = `Bonjour,\n\nAAR:\n\n- Type : ${reportKindLabel}\n- Date : ${date}\n- Titre : ${title}\n- Redacteur : ${identity}\n${diffusionLine}\n\nCordialement.${payloadBlock}`;
+                const mailto = `mailto:${recipients}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                window.location.href = mailto;
             },
 
             buildPortablePayload: () => {
@@ -4397,21 +5190,31 @@
             },
 
             nav: (index) => {
-                App.ui.currentTab = index;
+                const isExternalEditor = !!App.ui.isExternalEditor;
+                const requestedIndex = Number(index);
+                const effectiveIndex = isExternalEditor ? requestedIndex : (requestedIndex === 5 ? 4 : requestedIndex);
+                App.ui.currentTab = effectiveIndex;
                 // Update Sidebar
-                document.querySelectorAll('.nav-item').forEach((el, i) => {
-                    el.classList.toggle('active', i === index);
+                document.querySelectorAll('.nav-item').forEach((el) => {
+                    const tab = el.dataset.tab;
+                    if (typeof tab === 'undefined') {
+                        el.classList.remove('active');
+                        return;
+                    }
+                    el.classList.toggle('active', Number(tab) === requestedIndex);
                 });
                 // Update Views
-                const views = ['view-header', 'view-facts', 'view-analysis', 'view-reco', 'view-preview'];
+                const views = isExternalEditor
+                    ? ['view-header', 'view-facts', 'view-analysis', 'view-reco', 'view-qwi', 'view-preview']
+                    : ['view-header', 'view-facts', 'view-analysis', 'view-reco', 'view-preview'];
                 views.forEach((id, i) => {
                     const el = document.getElementById(id);
                     if (el) {
-                        el.classList.toggle('active', i === index);
+                        el.classList.toggle('active', i === effectiveIndex);
                     }
                 });
 
-                if (index === 4) App.renderPreview();
+                if (effectiveIndex === views.length - 1) App.renderPreview();
             },
 
             placeCaretAtEnd: (el) => {
@@ -4531,6 +5334,147 @@
                 }
             },
 
+            isBaapReportKind: () => {
+                return String(App.data?.meta?.reportKind || '').toUpperCase() === 'FLASH';
+            },
+
+            isWeaponsSchoolReportKind: () => {
+                return !App.isBaapReportKind();
+            },
+
+            toggleBaapFactsSection: (value) => {
+                const hashtag = App.getFactsRoleHashtag(value);
+                if (!hashtag) return;
+                const selectedSet = new Set(App.getBaapFactsSelection().map((tag) => App.normalizeKey(tag)));
+                if (selectedSet.has(App.normalizeKey(hashtag))) {
+                    App.removeHashtagSelection(hashtag);
+                } else {
+                    App.addHashtagSelection(hashtag);
+                }
+            },
+
+            toggleWsFactsSection: (key) => {
+                return;
+            },
+
+            execForEditor: (editorId, path, cmd, value = null) => {
+                const editor = document.getElementById(editorId);
+                if (!editor) return;
+
+                const selection = window.getSelection ? window.getSelection() : null;
+                const selectionInside = !!(selection && selection.rangeCount > 0 && editor.contains(selection.anchorNode));
+                if (!selectionInside) {
+                    App.placeCaretAtEnd(editor);
+                } else {
+                    try {
+                        editor.focus({ preventScroll: true });
+                    } catch (_) {
+                        editor.focus();
+                    }
+                }
+
+                App.exec(cmd, value);
+                App.update(path, editor.innerHTML);
+            },
+
+            factsRoleSlug: (value) => {
+                return String(value || '').replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+            },
+
+            renderFactsPanels: ({ containerId, selected, itemsByKey, editorPrefix }) => {
+                const panels = document.getElementById(containerId);
+                if (!panels) return;
+                if (!selected.length) {
+                    panels.style.display = 'none';
+                    panels.innerHTML = '';
+                    return;
+                }
+
+                panels.style.display = 'block';
+                panels.innerHTML = selected.map((key) => {
+                    const item = itemsByKey[key];
+                    if (!item) return '';
+                    const slug = App.factsRoleSlug(item.key);
+                    const editorId = `facts-${editorPrefix}-${slug}-content`;
+                    const path = `facts.${item.factsKey}`;
+                    return `
+                        <div class="card" style="padding: 1rem;">
+                            <div class="facts-panel-head">
+                                <div class="w6-label">${App.escapeHtmlText(item.label)}</div>
+                                <div class="editor-toolbar editor-toolbar-inline">
+                                    <button class="editor-btn btn-bold" onclick="App.execForEditor('${editorId}', '${path}', 'bold')" title="Bold">B</button>
+                                    <button class="editor-btn btn-italic" onclick="App.execForEditor('${editorId}', '${path}', 'italic')" title="Italic">I</button>
+                                    <button class="editor-btn btn-underline" onclick="App.execForEditor('${editorId}', '${path}', 'underline')" title="Underline">U</button>
+                                    <div class="toolbar-sep"></div>
+                                    <button class="editor-btn btn-h" onclick="App.execForEditor('${editorId}', '${path}', 'formatBlock', 'h1')">H1</button>
+                                    <button class="editor-btn btn-h" onclick="App.execForEditor('${editorId}', '${path}', 'formatBlock', 'h2')">H2</button>
+                                    <button class="editor-btn btn-h" onclick="App.execForEditor('${editorId}', '${path}', 'formatBlock', 'h3')">H3</button>
+                                    <button class="editor-btn btn-h" onclick="App.execForEditor('${editorId}', '${path}', 'formatBlock', 'p')" title="Paragraphe">P</button>
+                                    <div class="toolbar-sep"></div>
+                                    <button class="editor-btn btn-list" onclick="App.execForEditor('${editorId}', '${path}', 'insertUnorderedList')" title="Bullet List">• List</button>
+                                </div>
+                            </div>
+                            <div class="editor-container">
+                                <div id="${editorId}" class="editor-content" contenteditable="true"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                selected.forEach((key) => {
+                    const item = itemsByKey[key];
+                    if (!item) return;
+                    const slug = App.factsRoleSlug(item.key);
+                    const editorId = `facts-${editorPrefix}-${slug}-content`;
+                    const editor = document.getElementById(editorId);
+                    if (!editor) return;
+                    editor.innerHTML = App.sanitizeRichHtml(App.data.facts[item.factsKey] || '');
+                    editor.oninput = () => App.update(`facts.${item.factsKey}`, editor.innerHTML);
+                });
+            },
+
+            renderBaapFactsUi: () => {
+                const selector = document.getElementById('baap-role-selector');
+                if (!selector) return;
+
+                const selected = App.getBaapFactsSelection();
+                const selectedSet = new Set(selected.map((tag) => App.normalizeKey(tag)));
+                const factsHashtags = App.getFactsRoleCatalog();
+
+                selector.style.display = 'grid';
+                selector.innerHTML = factsHashtags.map((hashtag) => {
+                    const normalized = App.normalizeHashtag(hashtag);
+                    const tooltipKey = App.getFactsRoleTooltipKey(normalized);
+                    const isActive = selectedSet.has(App.normalizeKey(normalized));
+                    return `
+                        <div class="baap-role-item ${isActive ? 'active' : ''}" data-facts-role-tag="${App.escapeHtmlText(normalized)}">
+                            <div class="baap-role-head">
+                                <span class="level">${App.escapeHtmlText(normalized)}</span>
+                                ${tooltipKey ? `<button type="button" class="info-trigger" data-tooltip-key="${App.escapeHtmlText(tooltipKey)}" aria-label="Info ${App.escapeHtmlText(normalized)}">ⓘ</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                selector.querySelectorAll('[data-facts-role-tag]').forEach((node) => {
+                    node.addEventListener('click', (event) => {
+                        const tag = String(node.getAttribute('data-facts-role-tag') || '').trim();
+                        App.handleBaapRoleClick(event, tag);
+                    });
+                });
+            },
+
+            renderWsFactsUi: () => {
+                const selector = document.getElementById('ws-role-selector');
+                if (selector) selector.style.display = 'none';
+            },
+
+            refreshFactsModeUi: () => {
+                const mainCard = document.getElementById('facts-main-card');
+                if (mainCard) mainCard.style.display = 'block';
+                App.renderBaapFactsUi();
+                App.renderWsFactsUi();
+            },
+
 
 
             // --- FORM BINDING ---
@@ -4561,7 +5505,7 @@
                 document.getElementById('meta-log-country-autre').value = d.meta.logCountryAutre || '';
                 document.getElementById('meta-log-airfield').value = d.meta.logAirfield || '';
                 document.getElementById('meta-log-airfield-autre').value = d.meta.logAirfieldAutre || '';
-                document.getElementById('meta-hashtag-search').value = App.ui.hashtagSearch || '';
+                document.getElementById('meta-hashtag-search').value = App.sanitizeHashtagSearchInput(App.ui.hashtagSearch || '#');
                 document.getElementById('meta-tac-context').value = d.meta.tacContext || '';
                 document.getElementById('meta-tac-operation-search').value = App.ui.tacOperationSearch || App.getTacOperationSearchDisplayValue() || '';
                 document.getElementById('meta-tac-operation').value = d.meta.tacOperation || '';
@@ -4582,7 +5526,8 @@
                     el.classList.toggle('active', el.dataset.level === d.meta.classification);
                 });
 
-                document.getElementById('facts-content').innerHTML = App.getFactsContentHtml(d.facts);
+                document.getElementById('facts-content').innerHTML = App.getFactsMainContentHtml(d.facts);
+                App.refreshFactsModeUi();
 
                 document.getElementById('analysis-content').innerHTML = d.analysis.content || '';
 
@@ -4592,6 +5537,8 @@
                 document.getElementById('reco-equipements').innerHTML = d.recos.equipements || '';
                 document.getElementById('reco-soutien').innerHTML = d.recos.soutien || '';
                 document.getElementById('reco-entrainement').innerHTML = d.recos.entrainement || '';
+                const qwiAdvice = document.getElementById('qwi-advice');
+                if (qwiAdvice) qwiAdvice.innerHTML = d.qwi?.advice || '';
             },
 
             // --- PREVIEW RENDERER ---
@@ -4679,34 +5626,40 @@
                 if (!App.validateRequiredFields('envoi QWI')) return;
                 App.setSendQwiBusy(true);
                 const workflowStatus = App.getWorkflowStatusForCurrentReportKind();
+                const previousSendMeta = {
+                    workflowStatus: App.data.meta.workflowStatus || '',
+                    sentToQwiAt: App.data.meta.sentToQwiAt || '',
+                    publishedAt: App.data.meta.publishedAt || ''
+                };
                 App.stampWorkflowBeforeSend(workflowStatus);
 
-                // Fire-and-forget: launch Drive sync in background, without blocking mail opening.
-                App.pushToHubBeforeMail().catch((error) => {
-                    console.warn('HUB QWI sync failed in background:', error);
-                });
+                try {
+                    await App.pushToHubBeforeMail();
+                } catch (error) {
+                    App.data.meta.workflowStatus = previousSendMeta.workflowStatus;
+                    App.data.meta.sentToQwiAt = previousSendMeta.sentToQwiAt;
+                    App.data.meta.publishedAt = previousSendMeta.publishedAt;
+                    App.save();
+                    await DialogUI.alert({
+                        title: "Envoi impossible",
+                        message: `Impossible d'envoyer l'AAR sur le HUB QWI.\n\n${error?.message || error}`,
+                        kind: "danger"
+                    });
+                    return;
+                }
 
                 try {
-                    const title = App.data.meta.title || "AAR";
-                    const date = App.data.meta.date || "Unknown Date";
-                    const reportKind = String(App.data.meta.reportKind || 'CONSOLIDE').toUpperCase() === 'FLASH' ? 'FLASH' : 'CONSOLIDE';
-                    const reportKindLabel = App.getReportKindLabel(reportKind);
-                    const rank = App.data.meta.grade === 'AUTRE' ? (App.data.meta.gradeAutre || "") : (App.data.meta.grade || "");
-                    const identity = [rank, App.data.meta.nom || "", App.data.meta.prenom || ""].filter(Boolean).join(" ").trim() || "Unknown";
-                    const portablePayload = JSON.stringify(App.buildPortablePayload());
-                    const payloadBlock = `\n==================== AAR JSON PAYLOAD ====================\n---BEGIN-AAR-JSON---\n${portablePayload}\n---END-AAR-JSON---\n==========================================================`;
-                    const recipients = 'ciet-qwi.contact.fct@intradef.gouv.fr';
-                    const subject = `[AAR] [${reportKindLabel}] ${date} - ${title}`;
-                    const diffusionLine = workflowStatus === 'PENDING_QWI_REVIEW'
-                        ? '- Statut HUB : En attente de relecture / publication QWI'
-                        : '- Statut HUB : Déjà publié sur le AAR Reader';
-                    const body = `Bonjour,\n\nAAR:\n\n- Type : ${reportKindLabel}\n- Date : ${date}\n- Titre : ${title}\n- Redacteur : ${identity}\n${diffusionLine}\n\nCordialement.${payloadBlock}`;
-                    const mailto = `mailto:${recipients}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    window.location.href = mailto;
+                    await DialogUI.alert({
+                        title: "AAR envoyé au HUB",
+                        message: App.buildQwiSendSuccessMessage(workflowStatus),
+                        confirmLabel: "Ouvrir l'email QWI DR"
+                    });
+                    App.openQwiDraftEmail(workflowStatus);
                 } catch (error) {
                     await DialogUI.alert({
                         title: "Envoi impossible",
-                        message: `Impossible d'envoyer l'AAR au HUB QWI avant ouverture du mail.\n\n${error?.message || error}`
+                        message: `L'AAR est bien enregistré sur le HUB, mais l'ouverture de l'email a échoué.\n\n${error?.message || error}`,
+                        kind: "danger"
                     });
                 } finally {
                     // Keep a short lock to avoid accidental double tap.
@@ -4748,14 +5701,48 @@
             reset: async () => {
                 const canReset = await DialogUI.confirm({
                     title: "Reinitialiser l'AAR",
-                    message: "Voulez-vous vraiment effacer toutes les donnees ?",
+                    message: "Voulez-vous vraiment effacer toutes les donnees (en conservant Grade, Nom, Prenom, Escadron et Flotte) ?",
                     confirmLabel: "Effacer",
                     cancelLabel: "Annuler",
                     kind: "danger"
                 });
                 if (!canReset) return;
-                localStorage.removeItem('aar_forge_data');
-                location.reload();
+
+                const currentMeta = App.data?.meta || {};
+                const preservedMeta = {
+                    grade: currentMeta.grade || "",
+                    gradeAutre: currentMeta.gradeAutre || "",
+                    nom: currentMeta.nom || "",
+                    prenom: currentMeta.prenom || "",
+                    unite: currentMeta.unite || "",
+                    uniteAutre: currentMeta.uniteAutre || "",
+                    flotte: currentMeta.flotte || "",
+                    flotteAutre: currentMeta.flotteAutre || ""
+                };
+
+                App.data = {
+                    meta: { ...META_DEFAULTS, ...preservedMeta },
+                    facts: { ...FACTS_DEFAULTS },
+                    analysis: { ...ANALYSIS_DEFAULTS },
+                    recos: { ...RECOS_DEFAULTS },
+                    qwi: { ...QWI_DEFAULTS }
+                };
+
+                App.ui.logCountrySearch = "";
+                App.ui.showCountryMenu = false;
+                App.ui.logAirfieldSearch = "";
+                App.ui.showAirfieldMenu = false;
+                App.ui.tacOperationSearch = "";
+                App.ui.showTacOperationMenu = false;
+                App.ui.tacExerciseSearch = "";
+                App.ui.showTacExerciseMenu = false;
+                App.ui.hashtagSearch = "#";
+                App.ui.showHashtagMenu = false;
+
+                App.ensureDataShape();
+                App.save();
+                App.renderForm();
+                App.renderPreview();
             },
 
             autoExpand: (el) => {
@@ -5171,6 +6158,8 @@
 </body>
 
 </html>
+
+
 
 
 

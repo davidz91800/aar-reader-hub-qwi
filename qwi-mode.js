@@ -9,6 +9,7 @@
   const EDITOR_RELATIVE_URL = "./aar-pwa/AAR.html";
   const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
   const sessions = new Map();
+  const pendingEditorOpens = new Map();
   const CATALOG_DEFS = {
     hashtags: { label: "Hashtags", singular: "hashtag", normalize: (value) => normalizeHashtag(value), selectKey: "hashtag", otherKey: "hashtagAutre", arrayKey: "hashtags" },
     countries: { label: "Pays", singular: "pays", normalize: (value) => normalizeTextValue(value), selectKey: "logCountry", otherKey: "logCountryAutre" },
@@ -17,6 +18,54 @@
     exercises: { label: "Exercices", singular: "exercice", normalize: (value) => normalizeTextValue(value), selectKey: "tacExercise", otherKey: "tacExerciseAutre", contextKey: "tacContext", contextValue: "EXERCICE" }
   };
   const CATALOG_KEYS = Object.keys(CATALOG_DEFS);
+  const DEFAULT_FACTS_HASHTAGS = ["#airfield", "#pilot", "#loadmaster", "#mission-support", "#intel", "#c2", "#autre"];
+  const HASHTAG_SETTINGS_TABS = ["facts", "tooltips"];
+  const TOOLTIP_COMMENT_STATIC_TOP_DEFS = [
+    { key: "REPORT_KIND_FLASH", label: "AAR BAAP" },
+    { key: "REPORT_KIND_CONSOLIDE", label: "AAR WEAPONS SCHOOL" }
+  ];
+  const TOOLTIP_COMMENT_STATIC_BOTTOM_DEFS = [
+    { key: "DORESE_D", label: "Infobulle DORESE - Doctrine" },
+    { key: "DORESE_O", label: "Infobulle DORESE - Organisation" },
+    { key: "DORESE_R", label: "Infobulle DORESE - RH" },
+    { key: "DORESE_E_EQ", label: "Infobulle DORESE - Equipements" },
+    { key: "DORESE_S", label: "Infobulle DORESE - Soutien" },
+    { key: "DORESE_E_ENT", label: "Infobulle DORESE - Entrainement" }
+  ];
+  const FACTS_TOOLTIP_DYNAMIC_PREFIX = "FACTS_HASHTAG_";
+  const TOOLTIP_COMMENT_KEY_PATTERN = /^[A-Z0-9_]+$/;
+  const DEFAULT_FACTS_TOOLTIP_KEYS = [
+    "BAAP_ROLE_AIRFIELD",
+    "BAAP_ROLE_PILOT",
+    "BAAP_ROLE_LOADMASTER",
+    "BAAP_ROLE_MISSION_SUPPORT",
+    "BAAP_ROLE_INTEL",
+    "BAAP_ROLE_C2",
+    "BAAP_ROLE_OTHER"
+  ];
+  const FACTS_TOOLTIP_KEY_SET = new Set(DEFAULT_FACTS_TOOLTIP_KEYS);
+  const DEFAULT_FACTS_TOOLTIP_BY_HASHTAG = DEFAULT_FACTS_HASHTAGS.reduce((acc, hashtag, idx) => {
+    const key = DEFAULT_FACTS_TOOLTIP_KEYS[idx] || "BAAP_ROLE_OTHER";
+    acc[String(hashtag || "").toUpperCase()] = key;
+    return acc;
+  }, {});
+  const DEFAULT_TOOLTIP_COMMENTS = {
+    REPORT_KIND_FLASH: "à utiliser pour des AAR qui concernent les techniques et les procédures, ou tout autre élément pouvant servir aux opérations de futurs équipages. Envoie directement l'AAR sur le AAR Reader sans relecture QWI.",
+    REPORT_KIND_CONSOLIDE: "à utiliser pour des AAR qui concerne la tactique. Envoie d'abord l'AAR pour relecture QWI avant diffusion sur l'AAR Reader.",
+    BAAP_ROLE_AIRFIELD: "à utiliser si le contenu peut servir au remplissage d'un airfield survey.",
+    BAAP_ROLE_PILOT: "à utiliser lorsque l'événement touche les modes d'action suivants : aérotransport, aéroportage, aérolargage, ravitaillement en vol, MEDEVAC, RESEVAC ou ISR.",
+    BAAP_ROLE_LOADMASTER: "À utiliser pour tout ce qui concerne le chargement, déchargement, arrimage, refueling, etc...",
+    BAAP_ROLE_MISSION_SUPPORT: "à utiliser pour tout ce qui concerne l'assistance, l'hébergement, le transport, la nourriture ou les équipements individuels.",
+    BAAP_ROLE_INTEL: "à utiliser pour tout événement que vous transmettriez à votre officier renseignement. Attention à la classification!",
+    BAAP_ROLE_C2: "À utiliser pour toute problématique qui concerne la chaîne C2 (Commandant d'Escadron, Commandant d'Escadre, BAAP, TACON...).",
+    BAAP_ROLE_OTHER: "Pour tout autre événement non lié aux autres catégories.",
+    DORESE_D: "Tout ce qui relève des règles d'emploi, des procédures, des consignes, des TTP, ou de la documentation de référence.\nQuestion à se poser : faut-il créer, modifier, clarifier ou compléter une règle, une procédure ou un document ?",
+    DORESE_O: "Tout ce qui concerne la répartition des rôles, les responsabilités, la coordination entre acteurs, la chaîne de décision, ou la manière dont l'activité est structurée.\nQuestion à se poser : le problème vient-il d'une mauvaise organisation, d'une interface floue, ou d'une coordination insuffisante ?",
+    DORESE_R: "Tout ce qui touche aux compétences, à l'expérience, à la préparation des personnels, au niveau de qualification, ou à la charge humaine.\nQuestion à se poser : faut-il agir sur les connaissances, les savoir-faire, la sensibilisation, ou la répartition des compétences ?",
+    DORESE_E_EQ: "Tout ce qui relève des matériels, systèmes, outils, logiciels, interfaces, moyens embarqués ou au sol.\nQuestion à se poser : un équipement est-il inadapté, indisponible, mal conçu, mal paramétré, ou à faire évoluer ?",
+    DORESE_S: "Tout ce qui concerne l'appui nécessaire à l'activité : maintenance, logistique, documentation disponible, préparation mission, soutien technique, infrastructure, disponibilité des moyens.\nQuestion à se poser : l'évènement aurait-il pu être évité ou mieux géré avec un meilleur soutien ?",
+    DORESE_E_ENT: "Tout ce qui touche à l'instruction, à l'entraînement, à la mise en situation, à la répétition des procédures et à la préparation opérationnelle.\nQuestion à se poser : faut-il mieux entraîner, davantage entraîner, ou entraîner différemment ?"
+  };
   const FRENCH_OACI_SCOPE_CODES = new Set([
     "LFBA", "LFBC", "LFBD", "LFBG", "LFBM",
     "LFBO", "LFKS", "LFMI", "LFMO", "LFMY",
@@ -49,8 +98,11 @@
   let effectiveCatalogCache = null;
   const effectiveCategorySetCache = new Map();
   let adminActiveCategory = CATALOG_KEYS[0];
+  let hashtagSettingsActiveTab = "facts";
   let adminOpenHelpKey = "";
   const adminCatalogSearch = {};
+  let lastAdminRenderTarget = null;
+  let lastAdminRenderOptions = {};
   let confirmUi = null;
   let busyUi = null;
   let busyDepth = 0;
@@ -521,7 +573,18 @@
   }
 
   function createEmptyCatalog() {
-    return { hashtags: [], countries: [], oaci: [], operations: [], exercises: [], oaciCountryMap: {} };
+    return {
+      hashtags: [],
+      factsHashtags: [],
+      factsHashtagsConfigured: false,
+      factsHashtagTooltipMap: {},
+      countries: [],
+      oaci: [],
+      operations: [],
+      exercises: [],
+      oaciCountryMap: {},
+      tooltipComments: {}
+    };
   }
 
   function readAdminUiState() {
@@ -559,11 +622,15 @@
     const src = catalog && typeof catalog === "object" ? catalog : createEmptyCatalog();
     return {
       hashtags: [...(src.hashtags || [])],
+      factsHashtags: [...(src.factsHashtags || [])],
+      factsHashtagsConfigured: !!src.factsHashtagsConfigured,
+      factsHashtagTooltipMap: { ...(src.factsHashtagTooltipMap || {}) },
       countries: [...(src.countries || [])],
       oaci: [...(src.oaci || [])],
       operations: [...(src.operations || [])],
       exercises: [...(src.exercises || [])],
-      oaciCountryMap: { ...(src.oaciCountryMap || {}) }
+      oaciCountryMap: { ...(src.oaciCountryMap || {}) },
+      tooltipComments: { ...(src.tooltipComments || {}) }
     };
   }
 
@@ -576,6 +643,144 @@
     return (window.AARMissionConfig && typeof window.AARMissionConfig === "object")
       ? window.AARMissionConfig
       : {};
+  }
+
+  function normalizeTooltipCommentKey(value) {
+    return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
+  }
+
+  function isAllowedFactsTooltipKey(key) {
+    const normalized = normalizeTooltipCommentKey(key);
+    if (!normalized) return false;
+    return FACTS_TOOLTIP_KEY_SET.has(normalized) || normalized.startsWith(FACTS_TOOLTIP_DYNAMIC_PREFIX);
+  }
+
+  function buildFactsTooltipKeyBaseFromHashtag(hashtag) {
+    const normalized = normalizeHashtag(hashtag);
+    if (!normalized) return "";
+    const suffix = String(normalized)
+      .replace(/^#/, "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    return `${FACTS_TOOLTIP_DYNAMIC_PREFIX}${suffix || "TAG"}`;
+  }
+
+  function buildUniqueFactsTooltipKeyForHashtag(hashtag, usedKeySet) {
+    const base = buildFactsTooltipKeyBaseFromHashtag(hashtag);
+    if (!base) return "";
+    if (!usedKeySet || !(usedKeySet instanceof Set)) return base;
+    if (!usedKeySet.has(base)) return base;
+    let idx = 2;
+    while (usedKeySet.has(`${base}_${idx}`)) idx += 1;
+    return `${base}_${idx}`;
+  }
+
+  function buildTooltipCommentDefs() {
+    const defs = [...TOOLTIP_COMMENT_STATIC_TOP_DEFS];
+    const factsHashtags = getEffectiveFactsHashtags();
+    const factsTooltipMap = getEffectiveFactsHashtagTooltipMap();
+    const seenKeys = new Set(defs.map((item) => String(item.key || "").trim().toUpperCase()));
+    factsHashtags.forEach((hashtag) => {
+      const normalizedHashtag = normalizeHashtag(hashtag);
+      const hashtagUpper = String(normalizedHashtag || "").toUpperCase();
+      if (!normalizedHashtag || !hashtagUpper) return;
+      const key = String(factsTooltipMap[hashtagUpper] || DEFAULT_FACTS_TOOLTIP_BY_HASHTAG[hashtagUpper] || "").trim().toUpperCase();
+      if (!isAllowedFactsTooltipKey(key) || seenKeys.has(key)) return;
+      seenKeys.add(key);
+      defs.push({
+        key,
+        label: `Infobulle ${normalizedHashtag}`,
+        sourceHashtag: normalizedHashtag
+      });
+    });
+    TOOLTIP_COMMENT_STATIC_BOTTOM_DEFS.forEach((item) => defs.push(item));
+    return defs;
+  }
+
+  function normalizeTooltipCommentsMap(input) {
+    const src = input && typeof input === "object" ? input : {};
+    const out = {};
+    Object.keys(src).forEach((rawKey) => {
+      const key = normalizeTooltipCommentKey(rawKey);
+      if (!key || !TOOLTIP_COMMENT_KEY_PATTERN.test(key)) return;
+      const normalized = String(src[rawKey] || "").replace(/\r\n/g, "\n").trim();
+      if (!normalized) return;
+      out[key] = normalized;
+    });
+    return out;
+  }
+
+  function normalizeFactsHashtagValues(values) {
+    const out = [];
+    const seen = new Set();
+    (Array.isArray(values) ? values : []).forEach((value) => {
+      const normalized = normalizeHashtag(value);
+      if (!normalized) return;
+      const dedupKey = String(normalized).toUpperCase();
+      if (seen.has(dedupKey)) return;
+      seen.add(dedupKey);
+      out.push(normalized);
+    });
+    return out;
+  }
+
+  function normalizeFactsHashtagTooltipMap(input, options = {}) {
+    const src = input && typeof input === "object" ? input : {};
+    const factsHashtags = normalizeFactsHashtagValues(options.factsHashtags || []);
+    const sourceMap = {};
+    Object.keys(src).forEach((rawHashtag) => {
+      const hashtag = normalizeHashtag(rawHashtag);
+      if (!hashtag) return;
+      const tooltipKey = normalizeTooltipCommentKey(src[rawHashtag]);
+      if (!isAllowedFactsTooltipKey(tooltipKey)) return;
+      sourceMap[String(hashtag).toUpperCase()] = tooltipKey;
+    });
+    const out = {};
+    const usedKeys = new Set();
+    factsHashtags.forEach((hashtag) => {
+      const hashtagUpper = String(hashtag || "").toUpperCase();
+      const defaultKey = DEFAULT_FACTS_TOOLTIP_BY_HASHTAG[hashtagUpper] || "";
+      let nextKey = sourceMap[hashtagUpper] || defaultKey;
+      if (!isAllowedFactsTooltipKey(nextKey)) nextKey = "";
+      if (!defaultKey && nextKey === "BAAP_ROLE_OTHER") {
+        nextKey = "";
+      }
+      if (!nextKey || usedKeys.has(nextKey)) {
+        nextKey = buildUniqueFactsTooltipKeyForHashtag(hashtag, usedKeys) || defaultKey || "BAAP_ROLE_OTHER";
+      }
+      usedKeys.add(nextKey);
+      out[hashtagUpper] = nextKey;
+    });
+    return out;
+  }
+
+  function getDefaultFactsHashtagsFromConfig() {
+    const cfg = getBundledMissionConfig();
+    const fromConfig = Array.isArray(cfg.factsHashtags) && cfg.factsHashtags.length
+      ? cfg.factsHashtags
+      : DEFAULT_FACTS_HASHTAGS;
+    return normalizeFactsHashtagValues(fromConfig);
+  }
+
+  function getDefaultFactsHashtagTooltipMapFromConfig() {
+    const cfg = getBundledMissionConfig();
+    const fromConfig = cfg.factsHashtagTooltipMap && typeof cfg.factsHashtagTooltipMap === "object"
+      ? cfg.factsHashtagTooltipMap
+      : {};
+    const factsHashtags = getDefaultFactsHashtagsFromConfig();
+    return normalizeFactsHashtagTooltipMap({
+      ...DEFAULT_FACTS_TOOLTIP_BY_HASHTAG,
+      ...fromConfig
+    }, { factsHashtags });
+  }
+
+  function getTooltipDefaultsFromConfig() {
+    const cfg = getBundledMissionConfig();
+    return normalizeTooltipCommentsMap({
+      ...DEFAULT_TOOLTIP_COMMENTS,
+      ...(cfg.tooltipComments && typeof cfg.tooltipComments === "object" ? cfg.tooltipComments : {})
+    });
   }
 
   function normalizeCatalogValues(key, values, options = {}) {
@@ -603,7 +808,11 @@
     CATALOG_KEYS.forEach((key) => {
       out[key] = normalizeCatalogValues(key, src[key], options);
     });
+    out.factsHashtags = normalizeFactsHashtagValues(src.factsHashtags || []);
+    out.factsHashtagsConfigured = !!src.factsHashtagsConfigured || (Array.isArray(src.factsHashtags) && src.factsHashtags.length > 0);
+    out.factsHashtagTooltipMap = normalizeFactsHashtagTooltipMap(src.factsHashtagTooltipMap || {}, { factsHashtags: out.factsHashtags });
     out.oaciCountryMap = normalizeOaciCountryMap(src.oaciCountryMap, options);
+    out.tooltipComments = normalizeTooltipCommentsMap(src.tooltipComments || {});
     return out;
   }
 
@@ -620,12 +829,16 @@
     const scopedOaciCountryMap = normalizeOaciCountryMap(buildBaseOaciCountryMap(cfg), { enforceScope: true });
 
     return normalizeCatalogObject({
-      hashtags: cfg.hashtags || [],
+      hashtags: normalizeCatalogValues("hashtags", cfg.hashtags || []),
+      factsHashtags: getDefaultFactsHashtagsFromConfig(),
+      factsHashtagsConfigured: true,
+      factsHashtagTooltipMap: getDefaultFactsHashtagTooltipMapFromConfig(),
       countries: scopedCountries,
       oaci: scopedOaci,
       operations: cfg.tacOperations || [],
       exercises: cfg.tacExercises || [],
-      oaciCountryMap: scopedOaciCountryMap
+      oaciCountryMap: scopedOaciCountryMap,
+      tooltipComments: getTooltipDefaultsFromConfig()
     }, { enforceScope: true });
   }
 
@@ -639,6 +852,27 @@
       out[key] = (normalized[key] || []).filter((value) => !baseSet.has(String(value || "").toUpperCase()));
     });
 
+    const baseFactsHashtags = normalizeFactsHashtagValues(base.factsHashtags || []);
+    const currentFactsHashtags = normalizeFactsHashtagValues(normalized.factsHashtags || []);
+    const baseFactsConfigured = !!base.factsHashtagsConfigured;
+    const currentFactsConfigured = !!normalized.factsHashtagsConfigured;
+    const sameFactsList = baseFactsHashtags.length === currentFactsHashtags.length
+      && baseFactsHashtags.every((value, idx) => String(value || "").toUpperCase() === String(currentFactsHashtags[idx] || "").toUpperCase());
+    if (!sameFactsList || baseFactsConfigured !== currentFactsConfigured) {
+      out.factsHashtags = currentFactsHashtags;
+      out.factsHashtagsConfigured = currentFactsConfigured;
+    }
+    const baseFactsTooltipMap = normalizeFactsHashtagTooltipMap(base.factsHashtagTooltipMap || {}, { factsHashtags: baseFactsHashtags });
+    const currentFactsTooltipMap = normalizeFactsHashtagTooltipMap(normalized.factsHashtagTooltipMap || {}, { factsHashtags: currentFactsHashtags });
+    const sameFactsTooltipMap = JSON.stringify(baseFactsTooltipMap) === JSON.stringify(currentFactsTooltipMap);
+    if (!sameFactsTooltipMap) {
+      out.factsHashtagTooltipMap = currentFactsTooltipMap;
+      if (!out.factsHashtags.length && !out.factsHashtagsConfigured) {
+        out.factsHashtags = currentFactsHashtags;
+        out.factsHashtagsConfigured = currentFactsConfigured;
+      }
+    }
+
     const baseMap = base.oaciCountryMap || {};
     const normalizedMap = normalized.oaciCountryMap || {};
     const compactMap = {};
@@ -650,6 +884,18 @@
       compactMap[oaci] = country;
     });
     out.oaciCountryMap = compactMap;
+
+    const baseTooltip = normalizeTooltipCommentsMap(base.tooltipComments || {});
+    const currentTooltip = normalizeTooltipCommentsMap(normalized.tooltipComments || {});
+    const compactTooltip = {};
+    Object.keys(currentTooltip).forEach((key) => {
+      const value = String(currentTooltip[key] || "").trim();
+      const baseValue = String(baseTooltip[key] || "").trim();
+      if (!value) return;
+      if (value === baseValue) return;
+      compactTooltip[key] = value;
+    });
+    out.tooltipComments = normalizeTooltipCommentsMap(compactTooltip);
 
     return normalizeCatalogObject(out);
   }
@@ -750,6 +996,21 @@
       });
       merged[key] = normalizeCatalogValues(key, values);
     });
+    let factsHashtags = [];
+    let factsHashtagsConfigured = false;
+    let factsHashtagTooltipMap = {};
+    catalogs.forEach((catalog) => {
+      if (!catalog || typeof catalog !== "object") return;
+      if (!catalog.factsHashtagsConfigured) return;
+      factsHashtags = normalizeFactsHashtagValues(catalog.factsHashtags || []);
+      factsHashtagsConfigured = true;
+      factsHashtagTooltipMap = normalizeFactsHashtagTooltipMap(catalog.factsHashtagTooltipMap || {}, { factsHashtags });
+    });
+    merged.factsHashtags = factsHashtags;
+    merged.factsHashtagsConfigured = factsHashtagsConfigured;
+    merged.factsHashtagTooltipMap = factsHashtagsConfigured
+      ? normalizeFactsHashtagTooltipMap(factsHashtagTooltipMap, { factsHashtags })
+      : {};
     const mergedMap = {};
     catalogs.forEach((catalog) => {
       if (!catalog || typeof catalog !== "object") return;
@@ -760,14 +1021,41 @@
     });
     merged.oaciCountryMap = mergedMap;
     merged.oaci = normalizeCatalogValues("oaci", [...(merged.oaci || []), ...Object.keys(mergedMap)]);
+    const mergedTooltip = {};
+    catalogs.forEach((catalog) => {
+      if (!catalog || typeof catalog !== "object") return;
+      const map = normalizeTooltipCommentsMap(catalog.tooltipComments || {});
+      Object.keys(map).forEach((key) => {
+        mergedTooltip[key] = map[key];
+      });
+    });
+    merged.tooltipComments = normalizeTooltipCommentsMap(mergedTooltip);
     return merged;
   }
 
   function collectKnownHashtags() {
     const effective = getEffectiveCatalog();
-    return (effective && Array.isArray(effective.hashtags))
-      ? [...effective.hashtags]
+    const hashtags = (effective && Array.isArray(effective.hashtags))
+      ? effective.hashtags
       : [];
+    return normalizeCatalogValues("hashtags", [...hashtags, ...getEffectiveFactsHashtags()]);
+  }
+
+  function getEffectiveFactsHashtags() {
+    const effective = getEffectiveCatalog();
+    if (effective && effective.factsHashtagsConfigured) {
+      return normalizeFactsHashtagValues(effective.factsHashtags || []);
+    }
+    return getDefaultFactsHashtagsFromConfig();
+  }
+
+  function getEffectiveFactsHashtagTooltipMap() {
+    const effective = getEffectiveCatalog();
+    const factsHashtags = getEffectiveFactsHashtags();
+    if (effective && effective.factsHashtagsConfigured) {
+      return normalizeFactsHashtagTooltipMap(effective.factsHashtagTooltipMap || {}, { factsHashtags });
+    }
+    return normalizeFactsHashtagTooltipMap(getDefaultFactsHashtagTooltipMapFromConfig(), { factsHashtags });
   }
 
   function getCurrentCatalog() {
@@ -783,6 +1071,14 @@
       effectiveCatalogCache = mergeCatalogs(getBaseCatalog(), getCurrentCatalog());
     }
     return effectiveCatalogCache;
+  }
+
+  function getEffectiveTooltipComments() {
+    const effective = getEffectiveCatalog();
+    return normalizeTooltipCommentsMap({
+      ...getTooltipDefaultsFromConfig(),
+      ...(effective.tooltipComments || {})
+    });
   }
 
   function setCurrentCatalog(catalog, persist = true) {
@@ -850,10 +1146,37 @@
     return `${REQUEST_PREFIX}${sessionId}`;
   }
 
-  function buildEditorUrl(sessionId) {
-    const url = new URL(EDITOR_RELATIVE_URL, window.location.href);
+  function clearPendingEditorWatch(sessionId) {
+    const timer = pendingEditorOpens.get(sessionId);
+    if (timer) {
+      window.clearTimeout(timer);
+      pendingEditorOpens.delete(sessionId);
+    }
+  }
+
+  function resolveEditorBaseUrl() {
+    const scripts = Array.from(document.scripts || []);
+    const qwiScript = scripts.find((script) => /qwi-mode\.js/i.test(String(script.src || "")));
+    if (qwiScript && qwiScript.src) {
+      try {
+        return new URL("./", qwiScript.src).toString();
+      } catch (error) {
+        // fallback below
+      }
+    }
+    return new URL("./", window.location.href).toString();
+  }
+
+  function buildEditorUrl(sessionId, options = {}) {
+    const relativeEditorUrl = String(EDITOR_RELATIVE_URL || "").replace(/^\.\//, "");
+    const url = new URL(relativeEditorUrl, resolveEditorBaseUrl());
     url.searchParams.set("externalEditor", "1");
     url.searchParams.set("session", sessionId);
+    const requestedStartTab = Number(options && options.startTab);
+    if (Number.isFinite(requestedStartTab)) {
+      const tab = Math.max(0, Math.min(5, Math.trunc(requestedStartTab)));
+      url.searchParams.set("startTab", String(tab));
+    }
     return url.toString();
   }
 
@@ -1304,7 +1627,7 @@
     }
   }
 
-  function openEditor(recordId = "") {
+  function openEditor(recordId = "", options = {}) {
     const record = recordId ? state.reports.find((x) => x.id === recordId) : null;
     const sessionId = newSessionId();
     const driveFileId = record ? String(record.driveFileId || "").trim() : "";
@@ -1319,19 +1642,46 @@
       createdAt: new Date().toISOString()
     };
 
-    localStorage.setItem(requestKey(sessionId), JSON.stringify(payload));
+    try {
+      localStorage.setItem(requestKey(sessionId), JSON.stringify(payload));
+    } catch (error) {
+      toast("Impossible d'ouvrir l'editeur: stockage local indisponible.");
+      return;
+    }
     sessions.set(sessionId, { recordId: record ? record.id : "", driveFileId });
 
-    const popup = window.open(buildEditorUrl(sessionId), "_blank");
+    const editorUrl = buildEditorUrl(sessionId, options);
+    let popup = window.open(editorUrl, "_blank");
+    if (!popup) {
+      const anchor = document.createElement("a");
+      anchor.href = editorUrl;
+      anchor.target = "_blank";
+      anchor.rel = "noopener";
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      popup = null;
+    }
     if (!popup) {
       sessions.delete(sessionId);
+      clearPendingEditorWatch(sessionId);
       localStorage.removeItem(requestKey(sessionId));
       toast("Popup bloquee: autorise les popups puis reessaie.");
       return;
     }
 
+    clearPendingEditorWatch(sessionId);
+    const watchdog = window.setTimeout(() => {
+      if (sessions.has(sessionId)) {
+        toast("Editeur non charge. Verifie le chemin aar-pwa/AAR.html sur SharePoint.");
+      }
+      clearPendingEditorWatch(sessionId);
+    }, 8000);
+    pendingEditorOpens.set(sessionId, watchdog);
+
     if (!usesAppsScriptBackend() && !hasValidDriveToken()) {
-      toast("Edition ouverte. Pour pousser sur Drive: clique d'abord sur le nuage.");
+      toast("Edition ouverte. Synchronisation distante non connectee, sauvegarde locale uniquement.");
     }
   }
 
@@ -1683,7 +2033,7 @@
 
         setBusyMessage(`${successLabel}: finalisation...`);
         await persistRecords(rows);
-        renderAdmin();
+        rerenderAdminView();
         if (ko) toast(`${successLabel}: ${ok} MAJ, ${ko} en echec.`);
         else toast(`${successLabel}: ${ok} AAR mis a jour.`);
       });
@@ -1900,7 +2250,7 @@
     }
 
     if (changed) setCurrentCatalog(catalog, true);
-    renderAdmin();
+    rerenderAdminView();
     if (!changed) {
       toast(`${def.label}: deja present.`);
       return false;
@@ -1975,7 +2325,7 @@
       toast(`Renommage local OK, sync backend KO: ${error.message || error}`);
       return;
     }
-    renderAdmin();
+    rerenderAdminView();
   }
 
   async function deleteCatalogItem(category, value) {
@@ -2004,7 +2354,7 @@
       removeCatalogCountryMappings(catalog, normalized);
     }
     setCurrentCatalog(catalog, true);
-    renderAdmin();
+    rerenderAdminView();
 
     try {
       await withBusy(`${def.label}: synchronisation...`, async () => {
@@ -2374,7 +2724,7 @@
         adminActiveCategory = nextCategory;
         adminOpenHelpKey = "";
         saveAdminUiState();
-        renderAdmin(container);
+        rerenderAdminView({ targetEl: container });
       });
     });
 
@@ -2384,7 +2734,7 @@
         event.stopPropagation();
         const helpKey = String(btn.getAttribute("data-admin-help-toggle") || "").trim();
         adminOpenHelpKey = adminOpenHelpKey === helpKey ? "" : helpKey;
-        renderAdmin(container);
+        rerenderAdminView({ targetEl: container });
       });
     });
 
@@ -2393,7 +2743,7 @@
         event.preventDefault();
         event.stopPropagation();
         adminOpenHelpKey = "";
-        renderAdmin(container);
+        rerenderAdminView({ targetEl: container });
       });
     });
 
@@ -2464,7 +2814,8 @@
         const category = input.getAttribute("data-admin-search-input");
         adminCatalogSearch[category] = input.value || "";
         saveAdminUiState();
-        renderAdmin(container, {
+        rerenderAdminView({
+          targetEl: container,
           focusCategory: category,
           selectionStart: input.selectionStart,
           selectionEnd: input.selectionEnd
@@ -2580,14 +2931,549 @@
     });
   }
 
+  function buildFactsHashtagDraftCatalog(nextFactsHashtags, options = {}) {
+    const catalog = getCurrentCatalog();
+    const normalizedFactsHashtags = normalizeFactsHashtagValues(nextFactsHashtags || []);
+    const incomingMap = options.factsHashtagTooltipMap && typeof options.factsHashtagTooltipMap === "object"
+      ? options.factsHashtagTooltipMap
+      : getEffectiveFactsHashtagTooltipMap();
+    const previousMap = getEffectiveFactsHashtagTooltipMap();
+    const effectiveComments = getEffectiveTooltipComments();
+    const nextOverrideComments = normalizeTooltipCommentsMap(catalog.tooltipComments || {});
+    catalog.factsHashtags = normalizedFactsHashtags;
+    catalog.factsHashtagsConfigured = true;
+    catalog.factsHashtagTooltipMap = normalizeFactsHashtagTooltipMap(incomingMap, { factsHashtags: normalizedFactsHashtags });
+    const mappedKeys = new Set(Object.values(catalog.factsHashtagTooltipMap || {}).map((value) => normalizeTooltipCommentKey(value)).filter(Boolean));
+    Object.keys(nextOverrideComments).forEach((key) => {
+      const normalizedKey = normalizeTooltipCommentKey(key);
+      if (!normalizedKey.startsWith(FACTS_TOOLTIP_DYNAMIC_PREFIX)) return;
+      if (mappedKeys.has(normalizedKey)) return;
+      delete nextOverrideComments[normalizedKey];
+    });
+    normalizedFactsHashtags.forEach((hashtag) => {
+      const hashtagUpper = String(hashtag || "").toUpperCase();
+      const tooltipKey = normalizeTooltipCommentKey(catalog.factsHashtagTooltipMap?.[hashtagUpper] || "");
+      if (!tooltipKey || Object.prototype.hasOwnProperty.call(nextOverrideComments, tooltipKey)) return;
+      if (effectiveComments[tooltipKey]) return;
+      const previousTooltipKey = normalizeTooltipCommentKey(previousMap?.[hashtagUpper] || DEFAULT_FACTS_TOOLTIP_BY_HASHTAG[hashtagUpper] || "");
+      const fallbackText = String(
+        effectiveComments[previousTooltipKey]
+        || effectiveComments.BAAP_ROLE_OTHER
+        || DEFAULT_TOOLTIP_COMMENTS.BAAP_ROLE_OTHER
+        || ""
+      ).trim();
+      if (!fallbackText) return;
+      nextOverrideComments[tooltipKey] = fallbackText;
+    });
+    catalog.tooltipComments = normalizeTooltipCommentsMap(nextOverrideComments);
+    catalog.hashtags = normalizeCatalogValues("hashtags", [...(catalog.hashtags || []), ...normalizedFactsHashtags]);
+    return catalog;
+  }
+
+  async function saveFactsHashtags(nextFactsHashtags, options = {}) {
+    const catalog = buildFactsHashtagDraftCatalog(nextFactsHashtags, options);
+    setCurrentCatalog(catalog, true);
+    rerenderAdminView();
+    try {
+      await withBusy("Boutons # FAITS: synchronisation...", async () => {
+        await syncMissionCatalogToBackend(getCurrentCatalog());
+      });
+    } catch (error) {
+      toast(`Sauvegarde locale OK, sync backend KO: ${error.message || error}`);
+    }
+  }
+
+  async function addFactsHashtag(rawValue) {
+    const normalized = normalizeHashtag(rawValue);
+    if (!normalized) {
+      toast("Hashtag invalide.");
+      return;
+    }
+    const currentList = getEffectiveFactsHashtags();
+    const exists = currentList.some((value) => String(value || "").toUpperCase() === String(normalized).toUpperCase());
+    if (exists) {
+      toast("Hashtag deja present dans 1. FAITS.");
+      return;
+    }
+    await saveFactsHashtags([...currentList, normalized]);
+    toast("Hashtag ajoute dans 1. FAITS.");
+  }
+
+  async function renameFactsHashtag(oldValue, nextValue) {
+    const oldNorm = normalizeHashtag(oldValue);
+    const nextNorm = normalizeHashtag(nextValue);
+    if (!oldNorm || !nextNorm) {
+      toast("Renommage invalide.");
+      return;
+    }
+    const currentList = getEffectiveFactsHashtags();
+    const oldUpper = String(oldNorm).toUpperCase();
+    const hasOld = currentList.some((value) => String(value || "").toUpperCase() === oldUpper);
+    if (!hasOld) {
+      toast("Hashtag source introuvable.");
+      return;
+    }
+    const orderedNextList = normalizeFactsHashtagValues(currentList.map((value) => {
+      return String(value || "").toUpperCase() === oldUpper ? nextNorm : value;
+    }));
+    const currentMap = getEffectiveFactsHashtagTooltipMap();
+    const nextMap = { ...currentMap };
+    const oldKey = String(oldNorm || "").toUpperCase();
+    const nextKey = String(nextNorm || "").toUpperCase();
+    const mappedTooltipKey = nextMap[oldKey] || DEFAULT_FACTS_TOOLTIP_BY_HASHTAG[oldKey] || "BAAP_ROLE_OTHER";
+    delete nextMap[oldKey];
+    if (!nextMap[nextKey]) nextMap[nextKey] = mappedTooltipKey;
+    await saveFactsHashtags(orderedNextList, { factsHashtagTooltipMap: nextMap });
+    toast("Hashtag renomme dans 1. FAITS.");
+  }
+
+  async function deleteFactsHashtag(value) {
+    const normalized = normalizeHashtag(value);
+    if (!normalized) return;
+    const canDelete = await askConfirmation({
+      title: "Supprimer un bouton #",
+      message: `Supprimer '${normalized}' des boutons de 1. FAITS ?\n\nCela ne supprime pas ce hashtag du catalogue general de 0. CONFIGURATION.`,
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
+      kind: "danger"
+    });
+    if (!canDelete) return;
+    const nextList = getEffectiveFactsHashtags().filter((item) => String(item || "").toUpperCase() !== String(normalized).toUpperCase());
+    await saveFactsHashtags(nextList);
+    toast("Hashtag supprime des boutons 1. FAITS.");
+  }
+
+  function renderFactsHashtagsPanel() {
+    const currentCatalog = getCurrentCatalog();
+    const configured = !!currentCatalog.factsHashtagsConfigured;
+    const values = getEffectiveFactsHashtags();
+    const sourceLabel = configured ? "Officiel QWI" : "Socle AAR";
+    return `
+      <section class="admin-panel tooltip-admin-panel">
+        <div class="admin-panel-head">
+          <div class="admin-panel-title-wrap">
+            <div class="admin-panel-title">Boutons # de 1. FAITS</div>
+            <div class="admin-panel-submeta">Edition dediee aux hashtags visibles dans l'onglet FAITS. Les autres hashtags de 0. CONFIGURATION restent geres dans l'onglet Administration.</div>
+          </div>
+        </div>
+        <div class="admin-inline-metrics">
+          <span class="admin-mini-chip">${values.length} bouton(s)</span>
+          <span class="admin-mini-chip">${esc(sourceLabel)}</span>
+        </div>
+        <div class="admin-row" style="margin-top:.65rem;">
+          <input class="admin-input" data-facts-hashtag-add-input placeholder="#nouveau-hashtag">
+          <button class="admin-btn admin-btn-primary" data-facts-hashtag-add-btn type="button">Ajouter</button>
+        </div>
+        <div class="admin-list facts-hashtag-list" data-facts-hashtag-list style="margin-top:.75rem;">
+          ${values.length ? values.map((value) => `
+            <div class="admin-item facts-hashtag-item" data-facts-drag-item="${esc(value)}" draggable="true">
+              <div class="facts-hashtag-row">
+                <button class="facts-drag-handle" data-facts-drag-handle="${esc(value)}" type="button" title="Glisser pour reordonner" aria-label="Glisser pour reordonner">⋮⋮</button>
+                <div class="admin-item-value facts-hashtag-value">${esc(value)}</div>
+                <div class="facts-hashtag-actions">
+                  <button class="admin-btn admin-btn-compact" data-facts-hashtag-rename="${esc(value)}" type="button">Renommer</button>
+                  <button class="admin-btn admin-btn-danger admin-btn-compact" data-facts-hashtag-delete="${esc(value)}" type="button">Supprimer</button>
+                </div>
+              </div>
+            </div>
+          `).join("") : `<div class="admin-empty">Aucun bouton # configure pour 1. FAITS.</div>`}
+        </div>
+      </section>
+    `;
+  }
+
+  function bindFactsHashtagsEvents(container) {
+    if (!container) return;
+    const addInput = container.querySelector("[data-facts-hashtag-add-input]");
+    const addBtn = container.querySelector("[data-facts-hashtag-add-btn]");
+    const runAdd = async () => {
+      const raw = addInput ? String(addInput.value || "") : "";
+      await addFactsHashtag(raw);
+      if (addInput) addInput.value = "";
+    };
+    if (addBtn) addBtn.addEventListener("click", runAdd);
+    if (addInput) {
+      addInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        runAdd();
+      });
+    }
+
+    container.querySelectorAll("[data-facts-hashtag-rename]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const current = String(btn.getAttribute("data-facts-hashtag-rename") || "").trim();
+        if (!current) return;
+        const next = await askTextInput({
+          title: "Renommer un bouton #",
+          message: "Saisis le nouveau hashtag du bouton.",
+          inputValue: current,
+          inputPlaceholder: "#nouveau-hashtag",
+          confirmLabel: "Valider",
+          cancelLabel: "Annuler"
+        });
+        if (next === null) return;
+        await renameFactsHashtag(current, next);
+      });
+    });
+
+    container.querySelectorAll("[data-facts-hashtag-delete]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const value = String(btn.getAttribute("data-facts-hashtag-delete") || "").trim();
+        if (!value) return;
+        await deleteFactsHashtag(value);
+      });
+    });
+
+    bindFactsHashtagsDragEvents(container);
+  }
+
+  function bindFactsHashtagsDragEvents(container) {
+    if (!container) return;
+    const list = container.querySelector("[data-facts-hashtag-list]");
+    if (!list) return;
+
+    let draggedEl = null;
+    let draggedHashtag = "";
+    let dropIndex = -1;
+
+    const clearDropState = () => {
+      list.classList.remove("is-drop-end");
+      list.querySelectorAll(".facts-hashtag-item.is-drop-before").forEach((item) => {
+        item.classList.remove("is-drop-before");
+      });
+      dropIndex = -1;
+    };
+
+    const getHashtagUpperFromItem = (item) => {
+      if (!item) return "";
+      return String(normalizeHashtag(item.getAttribute("data-facts-drag-item") || "") || "").toUpperCase();
+    };
+
+    const getStaticItems = (excludedHashtagUpper = "") => {
+      const excluded = String(excludedHashtagUpper || "").toUpperCase();
+      return [...list.querySelectorAll("[data-facts-drag-item]")].filter((item) => {
+        if (!excluded) return item !== draggedEl;
+        return getHashtagUpperFromItem(item) !== excluded;
+      });
+    };
+
+    const resolveDropIndex = (clientY, excludedHashtagUpper = "") => {
+      const candidates = getStaticItems(excludedHashtagUpper);
+      if (!candidates.length) return 0;
+      for (let idx = 0; idx < candidates.length; idx += 1) {
+        const item = candidates[idx];
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + (rect.height / 2);
+        if (clientY < midY) return idx;
+      }
+      return candidates.length;
+    };
+
+    const resolveDropIndexFromPoint = (clientX, clientY, excludedHashtagUpper = "") => {
+      const candidates = getStaticItems(excludedHashtagUpper);
+      if (!candidates.length) return 0;
+      const hit = document.elementFromPoint(Number(clientX) || 0, Number(clientY) || 0);
+      const row = hit && typeof hit.closest === "function"
+        ? hit.closest("[data-facts-drag-item]")
+        : null;
+      if (!row) return resolveDropIndex(clientY, excludedHashtagUpper);
+      const idx = candidates.indexOf(row);
+      if (idx < 0) return resolveDropIndex(clientY, excludedHashtagUpper);
+      const rect = row.getBoundingClientRect();
+      const midY = rect.top + (rect.height / 2);
+      return clientY < midY ? idx : (idx + 1);
+    };
+
+    const setDropState = (nextIndex, excludedHashtagUpper = "") => {
+      clearDropState();
+      const candidates = getStaticItems(excludedHashtagUpper);
+      const safeIndex = Math.max(0, Math.min(Number(nextIndex) || 0, candidates.length));
+      dropIndex = safeIndex;
+      if (safeIndex >= candidates.length) {
+        list.classList.add("is-drop-end");
+        return;
+      }
+      const target = candidates[safeIndex];
+      if (target) target.classList.add("is-drop-before");
+    };
+
+    list.querySelectorAll("[data-facts-drag-item]").forEach((item) => {
+      item.addEventListener("dragstart", (event) => {
+        draggedEl = item;
+        draggedHashtag = normalizeHashtag(String(item.getAttribute("data-facts-drag-item") || ""));
+        list.classList.add("is-drag-active");
+        item.classList.add("is-dragging");
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", String(item.getAttribute("data-facts-drag-item") || ""));
+        }
+      });
+
+      item.addEventListener("dragend", () => {
+        // Keep state one tick so `drop` can consume the final insertion index.
+        window.setTimeout(() => {
+          list.classList.remove("is-drag-active");
+          item.classList.remove("is-dragging");
+          clearDropState();
+          draggedEl = null;
+          draggedHashtag = "";
+        }, 0);
+      });
+    });
+
+    list.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      if (!draggedEl) return;
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+      const excludedUpper = String(draggedHashtag || "").toUpperCase();
+      setDropState(resolveDropIndex(event.clientY, excludedUpper), excludedUpper);
+    });
+
+    list.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      const droppedHashtag = normalizeHashtag(
+        String(event.dataTransfer?.getData("text/plain") || draggedHashtag || "")
+      );
+      if (!droppedHashtag) return;
+
+      const currentOrder = getEffectiveFactsHashtags();
+      const draggedUpper = String(droppedHashtag || "").toUpperCase();
+      const draggedCurrent = currentOrder.find((value) => String(value || "").toUpperCase() === draggedUpper) || droppedHashtag;
+      const withoutDragged = currentOrder.filter((value) => String(value || "").toUpperCase() !== draggedUpper);
+      const candidates = getStaticItems(draggedUpper);
+      const visualDropTarget = list.querySelector(".facts-hashtag-item.is-drop-before");
+      const visualDropIndex = visualDropTarget ? candidates.indexOf(visualDropTarget) : -1;
+      const pointDropIndex = resolveDropIndexFromPoint(event.clientX, event.clientY, draggedUpper);
+      const resolvedIndex = Number.isFinite(pointDropIndex)
+        ? pointDropIndex
+        : (visualDropIndex >= 0
+            ? visualDropIndex
+            : (list.classList.contains("is-drop-end")
+                ? candidates.length
+                : (Number.isFinite(dropIndex) && dropIndex >= 0
+                    ? dropIndex
+                    : resolveDropIndex(event.clientY, draggedUpper))));
+      const safeDropIndex = Math.max(0, Math.min(Number(resolvedIndex), withoutDragged.length));
+      withoutDragged.splice(safeDropIndex, 0, draggedCurrent);
+      const nextOrder = normalizeFactsHashtagValues(withoutDragged);
+      const sameOrder = nextOrder.length === currentOrder.length
+        && nextOrder.every((value, idx) => String(value || "").toUpperCase() === String(currentOrder[idx] || "").toUpperCase());
+
+      list.classList.remove("is-drag-active");
+      if (draggedEl) draggedEl.classList.remove("is-dragging");
+      clearDropState();
+      draggedEl = null;
+      draggedHashtag = "";
+
+      if (sameOrder) return;
+      await saveFactsHashtags(nextOrder);
+      toast("Ordre des boutons # mis a jour.");
+    });
+  }
+
+  function renderTooltipCommentsPanel() {
+    const overrideMap = normalizeTooltipCommentsMap(getCurrentCatalog().tooltipComments || {});
+    const baseMap = normalizeTooltipCommentsMap({
+      ...getTooltipDefaultsFromConfig(),
+      ...(getBaseCatalog().tooltipComments || {})
+    });
+    const effectiveMap = getEffectiveTooltipComments();
+    const defs = buildTooltipCommentDefs();
+    return `
+      <section class="admin-panel tooltip-admin-panel">
+        <div class="admin-panel-head">
+          <div class="admin-panel-title-wrap">
+            <div class="admin-panel-title">Commentaires d'infobulles</div>
+            <div class="admin-panel-submeta">Ces textes sont affiches dans la PWA AAR au survol des boutons d'aide.</div>
+          </div>
+        </div>
+        <div class="admin-list admin-list-no-scroll">
+          ${defs.map((item) => {
+            const key = item.key;
+            const isOverride = Object.prototype.hasOwnProperty.call(overrideMap, key);
+            const sourceLabel = isOverride ? "Officiel QWI" : "Socle AAR";
+            const value = String(effectiveMap[key] || baseMap[key] || "").trim();
+            return `
+              <div class="admin-item">
+                <div class="admin-item-top">
+                  <div>
+                    <div class="admin-item-value">${esc(item.label)}</div>
+                    <div class="admin-item-meta">${esc(sourceLabel)}</div>
+                  </div>
+                </div>
+                <textarea class="admin-input tooltip-admin-text" data-tooltip-input="${esc(key)}" spellcheck="false">${esc(value)}</textarea>
+                <div class="admin-row">
+                  <button class="admin-btn admin-btn-primary" data-tooltip-save="${esc(key)}" type="button">Enregistrer</button>
+                  <button class="admin-btn" data-tooltip-reset="${esc(key)}" type="button">Reinitialiser</button>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </section>
+    `;
+  }
+
+  async function saveTooltipCommentOverride(key, rawValue) {
+    const normalizedKey = String(key || "").trim().toUpperCase();
+    const allowedKeys = new Set(buildTooltipCommentDefs().map((item) => String(item.key || "").trim().toUpperCase()));
+    if (!allowedKeys.has(normalizedKey)) {
+      toast("Cle d'infobulle invalide.");
+      return;
+    }
+
+    const normalizedValue = String(rawValue || "").replace(/\r\n/g, "\n").trim();
+    const catalog = getCurrentCatalog();
+    const nextComments = normalizeTooltipCommentsMap(catalog.tooltipComments || {});
+    if (normalizedValue) nextComments[normalizedKey] = normalizedValue;
+    else delete nextComments[normalizedKey];
+    catalog.tooltipComments = nextComments;
+    setCurrentCatalog(catalog, true);
+    rerenderAdminView();
+
+    try {
+      await withBusy("Infobulles: synchronisation...", async () => {
+        await syncMissionCatalogToBackend(getCurrentCatalog());
+      });
+      toast("Commentaire d'infobulle enregistre.");
+    } catch (error) {
+      toast(`Sauvegarde locale OK, sync backend KO: ${error.message || error}`);
+    }
+  }
+
+  async function resetTooltipCommentOverride(key) {
+    const normalizedKey = String(key || "").trim().toUpperCase();
+    const allowedKeys = new Set(buildTooltipCommentDefs().map((item) => String(item.key || "").trim().toUpperCase()));
+    if (!allowedKeys.has(normalizedKey)) {
+      toast("Cle d'infobulle invalide.");
+      return;
+    }
+    const catalog = getCurrentCatalog();
+    const nextComments = normalizeTooltipCommentsMap(catalog.tooltipComments || {});
+    delete nextComments[normalizedKey];
+    catalog.tooltipComments = nextComments;
+    setCurrentCatalog(catalog, true);
+    rerenderAdminView();
+
+    try {
+      await withBusy("Infobulles: synchronisation...", async () => {
+        await syncMissionCatalogToBackend(getCurrentCatalog());
+      });
+      toast("Commentaire d'infobulle reinitialise.");
+    } catch (error) {
+      toast(`Reinit locale OK, sync backend KO: ${error.message || error}`);
+    }
+  }
+
+  function bindTooltipCommentsEvents(container) {
+    if (!container) return;
+    container.querySelectorAll("[data-tooltip-save]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const key = String(btn.getAttribute("data-tooltip-save") || "").trim();
+        const input = container.querySelector(`[data-tooltip-input="${key}"]`);
+        const value = input ? String(input.value || "") : "";
+        await saveTooltipCommentOverride(key, value);
+      });
+    });
+    container.querySelectorAll("[data-tooltip-reset]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const key = String(btn.getAttribute("data-tooltip-reset") || "").trim();
+        await resetTooltipCommentOverride(key);
+      });
+    });
+  }
+
+  function rerenderAdminView(options = {}) {
+    const opts = options && typeof options === "object" ? { ...options } : {};
+    const targetEl = opts.targetEl
+      || lastAdminRenderTarget
+      || (state.mode === "hashtags" ? document.getElementById("view-hashtags") : document.getElementById("view-admin"));
+    if (!targetEl) return;
+    delete opts.targetEl;
+    if (targetEl.id === "view-hashtags" || state.mode === "hashtags") {
+      renderHashtagSettings(targetEl);
+      return;
+    }
+    const mergedOptions = { ...(lastAdminRenderOptions || {}), ...opts };
+    renderAdmin(targetEl, mergedOptions);
+  }
+
+  function renderCatalogPanelForCurrentMode() {
+    if (state.mode === "hashtags") {
+      renderHashtagSettings(document.getElementById("view-hashtags"));
+      return;
+    }
+    if (state.mode === "admin") {
+      renderAdmin(document.getElementById("view-admin"));
+    }
+  }
+
+  function renderHashtagSettings(targetEl = document.getElementById("view-hashtags")) {
+    if (!targetEl) return;
+    if (!HASHTAG_SETTINGS_TABS.includes(hashtagSettingsActiveTab)) {
+      hashtagSettingsActiveTab = "facts";
+    }
+    const factsCount = getEffectiveFactsHashtags().length;
+    const tooltipOverrideMap = normalizeTooltipCommentsMap(getCurrentCatalog().tooltipComments || {});
+    const tooltipOverrideCount = buildTooltipCommentDefs().reduce((count, item) => {
+      return Object.prototype.hasOwnProperty.call(tooltipOverrideMap, item.key) ? count + 1 : count;
+    }, 0);
+    const isFactsTab = hashtagSettingsActiveTab === "facts";
+    lastAdminRenderTarget = targetEl;
+    lastAdminRenderOptions = { modeVariant: "hashtags" };
+    targetEl.innerHTML = `
+      <div class="admin-wrap">
+        <div class="admin-header">
+          <div class="admin-header-copy">
+            <div class="admin-title-row">
+              <div class="admin-title">Administration # / infobulles</div>
+            </div>
+            <div class="admin-subtitle">Gestion dediee aux boutons # de 1. FAITS et aux commentaires d'infobulles.</div>
+          </div>
+        </div>
+        <div class="admin-tabs">
+          <button class="admin-tab ${isFactsTab ? "is-active" : ""}" data-hashtag-subtab="facts" type="button">
+            <span class="admin-tab-label">Boutons #</span>
+            <span class="admin-tab-meta">Gerer les boutons visibles dans 1. FAITS</span>
+            <span class="admin-tab-badge is-ok">${factsCount}</span>
+          </button>
+          <button class="admin-tab ${!isFactsTab ? "is-active" : ""}" data-hashtag-subtab="tooltips" type="button">
+            <span class="admin-tab-label">Commentaires</span>
+            <span class="admin-tab-meta">Editer les textes des infobulles</span>
+            <span class="admin-tab-badge ${tooltipOverrideCount ? "is-alert" : "is-ok"}">${tooltipOverrideCount}</span>
+          </button>
+        </div>
+        <div class="admin-grid">
+          ${isFactsTab ? renderFactsHashtagsPanel() : renderTooltipCommentsPanel()}
+        </div>
+      </div>
+    `;
+    targetEl.querySelectorAll("[data-hashtag-subtab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const nextTab = String(btn.getAttribute("data-hashtag-subtab") || "").trim();
+        if (!HASHTAG_SETTINGS_TABS.includes(nextTab)) return;
+        if (nextTab === hashtagSettingsActiveTab) return;
+        hashtagSettingsActiveTab = nextTab;
+        renderHashtagSettings(targetEl);
+      });
+    });
+    if (isFactsTab) bindFactsHashtagsEvents(targetEl);
+    else bindTooltipCommentsEvents(targetEl);
+  }
+
   function renderAdmin(targetEl = document.getElementById("view-admin"), options = {}) {
     if (!targetEl) return;
+    const opts = options && typeof options === "object" ? options : {};
+    const isHashtagVariant = opts.modeVariant === "hashtags";
+    if (isHashtagVariant) adminActiveCategory = "hashtags";
+    if (!CATALOG_KEYS.includes(adminActiveCategory)) adminActiveCategory = CATALOG_KEYS[0];
+
     const officialCatalog = getCurrentCatalog();
     const effectiveCatalog = getEffectiveCatalog();
     const totalOfficialValues = CATALOG_KEYS.reduce((sum, key) => sum + ((officialCatalog[key] || []).length), 0);
     const totalAvailableValues = CATALOG_KEYS.reduce((sum, key) => sum + ((effectiveCatalog[key] || []).length), 0);
     const pendingSummary = getAdminPendingSummary();
-    if (!CATALOG_KEYS.includes(adminActiveCategory)) adminActiveCategory = CATALOG_KEYS[0];
 
     const categoryModels = {};
     CATALOG_KEYS.forEach((key) => {
@@ -2616,15 +3502,29 @@
     };
     const activeHelpPayload = adminOpenHelpKey ? helpRegistry[adminOpenHelpKey] || null : null;
 
+    const title = String(opts.title || (isHashtagVariant ? "Administration # / infobulles" : "Administration QWI"));
+    const subtitle = String(opts.subtitle || (isHashtagVariant
+      ? "Hashtags visibles dans la PWA et commentaires des infobulles."
+      : "Hashtags, pays, OACI, operations et exercices."));
+    const hideTabs = isHashtagVariant || !!opts.hideTabs;
+    const extraPanelHtml = isHashtagVariant ? renderTooltipCommentsPanel() : String(opts.extraPanelHtml || "");
+
+    const persistentOptions = { ...opts };
+    delete persistentOptions.focusCategory;
+    delete persistentOptions.selectionStart;
+    delete persistentOptions.selectionEnd;
+    lastAdminRenderTarget = targetEl;
+    lastAdminRenderOptions = persistentOptions;
+
     targetEl.innerHTML = `
       <div class="admin-wrap">
         <div class="admin-header">
           <div class="admin-header-copy">
             <div class="admin-title-row">
-              <div class="admin-title">Administration QWI</div>
+              <div class="admin-title">${esc(title)}</div>
               ${renderAdminHelp("overview", getAdminHelpContent("overview", adminActiveCategory, activeModel), "admin-help-header")}
             </div>
-            <div class="admin-subtitle">Hashtags, pays, OACI, operations et exercices.</div>
+            <div class="admin-subtitle">${esc(subtitle)}</div>
           </div>
           <div class="admin-stat-strip">
             <div class="admin-stat-card ${pendingSummary.total ? "is-alert" : "is-ok"}">
@@ -2641,24 +3541,28 @@
             </div>
           </div>
         </div>
-        <div class="admin-tabs" role="tablist" aria-label="Referentiels QWI">
-          ${CATALOG_KEYS.map((key) => renderAdminTab(key, categoryModels[key], key === adminActiveCategory)).join("")}
-        </div>
+        ${hideTabs ? "" : `
+          <div class="admin-tabs" role="tablist" aria-label="Referentiels QWI">
+            ${CATALOG_KEYS.map((key) => renderAdminTab(key, categoryModels[key], key === adminActiveCategory)).join("")}
+          </div>
+        `}
         <div class="admin-grid">
           ${renderAdminCard(adminActiveCategory, activeModel)}
+          ${extraPanelHtml}
         </div>
         ${renderAdminHelpModal(activeHelpPayload)}
       </div>
     `;
 
     bindAdminEvents(targetEl);
+    if (isHashtagVariant) bindTooltipCommentsEvents(targetEl);
 
-    if (options && options.focusCategory) {
-      const searchInput = targetEl.querySelector(`[data-admin-search-input="${options.focusCategory}"]`);
+    if (opts && opts.focusCategory) {
+      const searchInput = targetEl.querySelector(`[data-admin-search-input="${opts.focusCategory}"]`);
       if (searchInput) {
         searchInput.focus({ preventScroll: true });
-        if (typeof options.selectionStart === "number" && typeof options.selectionEnd === "number" && searchInput.setSelectionRange) {
-          searchInput.setSelectionRange(options.selectionStart, options.selectionEnd);
+        if (typeof opts.selectionStart === "number" && typeof opts.selectionEnd === "number" && searchInput.setSelectionRange) {
+          searchInput.setSelectionRange(opts.selectionStart, opts.selectionEnd);
         } else {
           const end = String(searchInput.value || "").length;
           if (searchInput.setSelectionRange) searchInput.setSelectionRange(end, end);
@@ -2679,6 +3583,7 @@
       actions.id = "detail-qwi-actions";
       actions.className = "detail-qwi-actions";
       actions.innerHTML = `
+        <button class="detail-qwi-btn" data-qwi-action="qwi-advice" type="button">Avis QWI</button>
         <button class="detail-qwi-btn" data-qwi-action="edit" type="button">Modifier</button>
         <button class="detail-qwi-btn" data-qwi-action="publish" type="button">Publier</button>
         <button class="detail-qwi-btn" data-qwi-action="delete" type="button">Supprimer</button>
@@ -2695,11 +3600,13 @@
     const recordId = state.openDetailId;
     const record = state.reports.find((x) => x.id === recordId) || null;
     const workflowStatus = getRecordWorkflowStatus(record);
+    const qwiAdviceBtn = actions.querySelector('[data-qwi-action="qwi-advice"]');
     const editBtn = actions.querySelector('[data-qwi-action="edit"]');
     const publishBtn = actions.querySelector('[data-qwi-action="publish"]');
     const deleteBtn = actions.querySelector('[data-qwi-action="delete"]');
     const newBtn = actions.querySelector('[data-qwi-action="new"]');
 
+    if (qwiAdviceBtn) qwiAdviceBtn.onclick = () => openEditor(recordId, { startTab: 4 });
     if (editBtn) editBtn.onclick = () => openEditor(recordId);
     if (publishBtn) {
       publishBtn.style.display = workflowStatus === "PENDING_QWI_REVIEW" ? "" : "none";
@@ -2730,14 +3637,16 @@
       if (usesAppsScriptBackend()) {
         try {
           const remoteCatalog = await fetchRemoteCatalogFromBackend();
-          merged = mergeCatalogs(remoteCatalog, merged);
+          // Backend catalog is authoritative (same source used by PWA).
+          // Keep it last so stale local cache cannot override remote order/content.
+          merged = mergeCatalogs(merged, remoteCatalog);
         } catch (error) {
           console.warn("Remote mission catalog unavailable", error);
         }
       }
 
       setCurrentCatalog(merged, true);
-      if (state.mode === "admin") renderAdmin();
+      renderCatalogPanelForCurrentMode();
     });
   }
 
@@ -2806,13 +3715,23 @@
         await persistRecords(merged);
       }
 
-      if (state.mode === "admin") renderAdmin();
+      renderCatalogPanelForCurrentMode();
     });
   };
 
   window.addEventListener("message", async (evt) => {
     const msg = evt.data;
-    if (!msg || msg.type !== "aar-qwi-save") return;
+    if (!msg || !msg.type) return;
+
+    if (msg.type === "aar-qwi-editor-ready") {
+      const readySession = String(msg.session || "");
+      if (readySession) {
+        clearPendingEditorWatch(readySession);
+      }
+      return;
+    }
+
+    if (msg.type !== "aar-qwi-save") return;
 
     const sessionId = String(msg.session || "");
     if (!sessions.has(sessionId)) return;
@@ -2830,7 +3749,7 @@
       if (incomingCatalog) {
         const mergedCatalog = mergeCatalogs(getCurrentCatalog(), incomingCatalog);
         setCurrentCatalog(mergedCatalog, true);
-        if (state.mode === "admin") renderAdmin();
+        renderCatalogPanelForCurrentMode();
         try {
           await syncMissionCatalogToBackend(mergedCatalog);
         } catch (error) {
@@ -2842,6 +3761,7 @@
       toast(`Echec enregistrement: ${error.message || error}`);
     } finally {
       sessions.delete(sessionId);
+      clearPendingEditorWatch(sessionId);
       localStorage.removeItem(requestKey(sessionId));
     }
   });
@@ -2860,7 +3780,8 @@
   }
 
   window.QwiMode = Object.assign({}, window.QwiMode || {}, {
-    renderAdmin
+    renderAdmin,
+    renderHashtagSettings
   });
 
   installTopActions();

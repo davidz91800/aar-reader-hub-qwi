@@ -275,12 +275,56 @@ window.AARMissionConfig = {
     "ETAP-C Multiple Ship"
   ],
   "appsScript": {
-    "webAppUrl": "https://script.google.com/macros/s/AKfycbzAB36XlBoE5vo1fSfxeMkn05r6FrUlFkEw8iAxiEaTsj1maU82c4d9GgB7W6p72rOPSg/exec",
+    "webAppUrl": "https://script.google.com/macros/s/AKfycbyR4B_bo7J7mHPE-oEvjVay3xx8-5tmiOex3TfTWr4V3a1xlCmZpQer8dy6dKJn3c9P/exec",
     "accessKey": "AAR-READER-HUB-QWI"
   },
   "hashtags": [
-    "#RETEX"
+    "#airfield",
+    "#pilot",
+    "#loadmaster",
+    "#mission-support",
+    "#intel",
+    "#c2",
+    "#autre",
+    "#RETEX",
+    "#SmokeAndFumes"
   ],
+  "factsHashtags": [
+    "#airfield",
+    "#pilot",
+    "#loadmaster",
+    "#mission-support",
+    "#intel",
+    "#c2",
+    "#autre"
+  ],
+  "factsHashtagsConfigured": true,
+  "factsHashtagTooltipMap": {
+    "#airfield": "BAAP_ROLE_AIRFIELD",
+    "#pilot": "BAAP_ROLE_PILOT",
+    "#loadmaster": "BAAP_ROLE_LOADMASTER",
+    "#mission-support": "BAAP_ROLE_MISSION_SUPPORT",
+    "#intel": "BAAP_ROLE_INTEL",
+    "#c2": "BAAP_ROLE_C2",
+    "#autre": "BAAP_ROLE_OTHER"
+  },
+  "tooltipComments": {
+    "REPORT_KIND_FLASH": "à utiliser pour des AAR qui concernent les techniques et les procédures, ou tout autre élément pouvant servir aux opérations de futurs équipages. Envoie directement l'AAR sur le AAR Reader sans relecture QWI.",
+    "REPORT_KIND_CONSOLIDE": "à utiliser pour des AAR qui concerne la tactique. Envoie d'abord l'AAR pour relecture QWI avant diffusion sur l'AAR Reader.",
+    "BAAP_ROLE_AIRFIELD": "à utiliser si le contenu peut servir au remplissage d'un airfield survey.",
+    "BAAP_ROLE_PILOT": "à utiliser lorsque l'événement touche les modes d'action suivants : aérotransport, aéroportage, aérolargage, ravitaillement en vol, MEDEVAC, RESEVAC ou ISR.",
+    "BAAP_ROLE_LOADMASTER": "À utiliser pour tout ce qui concerne le chargement, déchargement, arrimage, refueling, etc...",
+    "BAAP_ROLE_MISSION_SUPPORT": "à utiliser pour tout ce qui concerne l'assistance, l'hébergement, le transport, la nourriture ou les équipements individuels.",
+    "BAAP_ROLE_INTEL": "à utiliser pour tout événement que vous transmettriez à votre officier renseignement. Attention à la classification!",
+    "BAAP_ROLE_C2": "À utiliser pour toute problématique qui concerne la chaîne C2 (Commandant d'Escadron, Commandant d'Escadre, BAAP, TACON...).",
+    "BAAP_ROLE_OTHER": "Pour tout autre événement non lié aux autres catégories.",
+    "DORESE_D": "Tout ce qui relève des règles d'emploi, des procédures, des consignes, des TTP, ou de la documentation de référence.\nQuestion à se poser : faut-il créer, modifier, clarifier ou compléter une règle, une procédure ou un document ?",
+    "DORESE_O": "Tout ce qui concerne la répartition des rôles, les responsabilités, la coordination entre acteurs, la chaîne de décision, ou la manière dont l'activité est structurée.\nQuestion à se poser : le problème vient-il d'une mauvaise organisation, d'une interface floue, ou d'une coordination insuffisante ?",
+    "DORESE_R": "Tout ce qui touche aux compétences, à l'expérience, à la préparation des personnels, au niveau de qualification, ou à la charge humaine.\nQuestion à se poser : faut-il agir sur les connaissances, les savoir-faire, la sensibilisation, ou la répartition des compétences ?",
+    "DORESE_E_EQ": "Tout ce qui relève des matériels, systèmes, outils, logiciels, interfaces, moyens embarqués ou au sol.\nQuestion à se poser : un équipement est-il inadapté, indisponible, mal conçu, mal paramétré, ou à faire évoluer ?",
+    "DORESE_S": "Tout ce qui concerne l'appui nécessaire à l'activité : maintenance, logistique, documentation disponible, préparation mission, soutien technique, infrastructure, disponibilité des moyens.\nQuestion à se poser : l'évènement aurait-il pu être évité ou mieux géré avec un meilleur soutien ?",
+    "DORESE_E_ENT": "Tout ce qui touche à l'instruction, à l'entraînement, à la mise en situation, à la répétition des procédures et à la préparation opérationnelle.\nQuestion à se poser : faut-il mieux entraîner, davantage entraîner, ou entraîner différemment ?"
+  },
   "logAirfieldsByCountry": {
     "Afghanistan": [
       "OAAK Andkhoy Airport",

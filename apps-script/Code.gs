@@ -39,6 +39,25 @@ var DEFAULTS = Object.freeze({
   ingestErrorLabel: "AAR_READER_ERROR",
   ingestTriggerMinutes: 1
 });
+var FACTS_TOOLTIP_KEYS_ = Object.freeze([
+  "BAAP_ROLE_AIRFIELD",
+  "BAAP_ROLE_PILOT",
+  "BAAP_ROLE_LOADMASTER",
+  "BAAP_ROLE_MISSION_SUPPORT",
+  "BAAP_ROLE_INTEL",
+  "BAAP_ROLE_C2",
+  "BAAP_ROLE_OTHER"
+]);
+var FACTS_TOOLTIP_DYNAMIC_PREFIX_ = "FACTS_HASHTAG_";
+var DEFAULT_FACTS_TOOLTIP_BY_HASHTAG_ = Object.freeze({
+  "#AIRFIELD": "BAAP_ROLE_AIRFIELD",
+  "#PILOT": "BAAP_ROLE_PILOT",
+  "#LOADMASTER": "BAAP_ROLE_LOADMASTER",
+  "#MISSION-SUPPORT": "BAAP_ROLE_MISSION_SUPPORT",
+  "#INTEL": "BAAP_ROLE_INTEL",
+  "#C2": "BAAP_ROLE_C2",
+  "#AUTRE": "BAAP_ROLE_OTHER"
+});
 
 /* =========================
  * 1) WEB APP API
@@ -996,13 +1015,18 @@ function writeCatalog_(catalog) {
 
 function normalizeCatalogObject_(input) {
   var src = input && typeof input === "object" ? input : {};
+  var normalizedFactsHashtags = normalizeFactsHashtagArray_(src.factsHashtags);
   var out = {
     hashtags: normalizeCatalogArray_(src.hashtags, "hashtag"),
+    factsHashtags: normalizedFactsHashtags,
+    factsHashtagsConfigured: !!src.factsHashtagsConfigured || (Array.isArray(src.factsHashtags) && src.factsHashtags.length > 0),
+    factsHashtagTooltipMap: normalizeFactsHashtagTooltipMap_(src.factsHashtagTooltipMap, normalizedFactsHashtags),
     countries: normalizeCatalogArray_(src.countries, "text"),
     oaci: normalizeCatalogArray_(src.oaci, "oaci"),
     operations: normalizeCatalogArray_(src.operations, "text"),
     exercises: normalizeCatalogArray_(src.exercises, "text"),
-    oaciCountryMap: normalizeCatalogMap_(src.oaciCountryMap)
+    oaciCountryMap: normalizeCatalogMap_(src.oaciCountryMap),
+    tooltipComments: normalizeTooltipCommentsMap_(src.tooltipComments)
   };
 
   var mapKeys = Object.keys(out.oaciCountryMap || {});
@@ -1013,6 +1037,100 @@ function normalizeCatalogObject_(input) {
       mappedCountries.push(out.oaciCountryMap[mapKeys[i]]);
     }
     out.countries = normalizeCatalogArray_(out.countries.concat(mappedCountries), "text");
+  }
+  return out;
+}
+
+function normalizeTooltipCommentsMap_(input) {
+  var src = input && typeof input === "object" ? input : {};
+  var out = {};
+  var keys = Object.keys(src).sort(function(a, b) { return String(a || "").localeCompare(String(b || "")); });
+  for (var i = 0; i < keys.length; i += 1) {
+    var keyRaw = normalizeTooltipCommentKey_(keys[i]);
+    if (!keyRaw) continue;
+    var text = String(src[keys[i]] || "").replace(/\r\n/g, "\n").trim();
+    if (!text) continue;
+    out[keyRaw] = text;
+  }
+  return out;
+}
+
+function normalizeTooltipCommentKey_(value) {
+  return String(value || "").trim().toUpperCase().replace(/[^A-Z0-9_]/g, "");
+}
+
+function isAllowedFactsTooltipKey_(value) {
+  var key = normalizeTooltipCommentKey_(value);
+  if (!key) return false;
+  for (var i = 0; i < FACTS_TOOLTIP_KEYS_.length; i += 1) {
+    if (FACTS_TOOLTIP_KEYS_[i] === key) return true;
+  }
+  return key.indexOf(FACTS_TOOLTIP_DYNAMIC_PREFIX_) === 0;
+}
+
+function buildFactsTooltipKeyBaseFromHashtag_(hashtag) {
+  var normalized = normalizeHashtag_(hashtag);
+  if (!normalized) return "";
+  var suffix = String(normalized)
+    .replace(/^#/, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return FACTS_TOOLTIP_DYNAMIC_PREFIX_ + (suffix || "TAG");
+}
+
+function buildUniqueFactsTooltipKeyForHashtag_(hashtag, used) {
+  var base = buildFactsTooltipKeyBaseFromHashtag_(hashtag);
+  if (!base) return "";
+  if (!used || typeof used !== "object") return base;
+  if (!used[base]) return base;
+  var idx = 2;
+  while (used[base + "_" + idx]) idx += 1;
+  return base + "_" + idx;
+}
+
+function normalizeFactsHashtagTooltipMap_(input, factsHashtags) {
+  var src = input && typeof input === "object" ? input : {};
+  var sourceMap = {};
+  var keys = Object.keys(src).sort(function(a, b) { return String(a || "").localeCompare(String(b || "")); });
+  for (var k = 0; k < keys.length; k += 1) {
+    var hashtag = normalizeHashtag_(keys[k]);
+    if (!hashtag) continue;
+    var tooltipKey = normalizeTooltipCommentKey_(src[keys[k]]);
+    if (!isAllowedFactsTooltipKey_(tooltipKey)) continue;
+    sourceMap[String(hashtag).toUpperCase()] = tooltipKey;
+  }
+
+  var factsList = normalizeFactsHashtagArray_(factsHashtags);
+  var out = {};
+  var used = {};
+  for (var j = 0; j < factsList.length; j += 1) {
+    var factHashtag = String(factsList[j] || "").toUpperCase();
+    if (!factHashtag) continue;
+    var defaultKey = DEFAULT_FACTS_TOOLTIP_BY_HASHTAG_[factHashtag] || "";
+    var nextKey = sourceMap[factHashtag] || defaultKey;
+    if (!isAllowedFactsTooltipKey_(nextKey)) nextKey = "";
+    if (!defaultKey && nextKey === "BAAP_ROLE_OTHER") nextKey = "";
+    if (!nextKey || used[nextKey]) {
+      nextKey = buildUniqueFactsTooltipKeyForHashtag_(factHashtag, used) || defaultKey || "BAAP_ROLE_OTHER";
+    }
+    out[factHashtag] = nextKey;
+    used[nextKey] = true;
+  }
+  return out;
+}
+
+function normalizeFactsHashtagArray_(values) {
+  var source = Array.isArray(values) ? values : [];
+  var out = [];
+  var seen = {};
+  for (var i = 0; i < source.length; i += 1) {
+    var norm = normalizeCatalogValue_(source[i], "hashtag");
+    if (!norm) continue;
+    var key = String(norm).toUpperCase();
+    if (seen[key]) continue;
+    seen[key] = true;
+    out.push(norm);
   }
   return out;
 }

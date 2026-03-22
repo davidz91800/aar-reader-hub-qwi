@@ -2,8 +2,8 @@
 setlocal
 
 set "APP_DIR=%~dp0"
-for %%I in ("%APP_DIR%..\..") do set "ROOT_DIR=%%~fI"
-set "APP_PATH=/E%%20-%%20AAR%%20READER%%20HUB/AAR%%20READER%%20HUB%%20QWI/index.html"
+for %%I in ("%APP_DIR%..") do set "ROOT_DIR=%%~fI"
+set "APP_PATH=/E%%20-%%20AAR%%20READER%%20HUB%%20QWI/index.html"
 set "PORT=18081"
 set "FALLBACK_PORT=18082"
 set "URL=http://localhost:%PORT%%APP_PATH%"

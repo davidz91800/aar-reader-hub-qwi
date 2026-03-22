@@ -37,7 +37,7 @@ Si `index.html` est ouvert en `file://`, l'app affiche maintenant une aide a l'e
 
 ```js
 window.AAR_READER_CONFIG = {
-  autoSyncOnStartup: false,
+  autoSyncOnStartup: true,
   appsScript: {
     enabled: true,
     webAppUrl: "https://script.google.com/macros/s/.../exec",

@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "aar-shell-v11";
+﻿const CACHE_NAME = "aar-shell-v14";
 const SHELL_URL = "./AAR.html";
 const CORE_ASSETS = [SHELL_URL];
 const OPTIONAL_ASSETS = [
@@ -106,3 +106,6 @@ self.addEventListener("fetch", (event) => {
     }
   })());
 });
+
+
+

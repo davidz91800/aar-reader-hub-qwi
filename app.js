@@ -15,7 +15,7 @@ const SHOW_PENDING_QWI_REVIEW = true;
 
 const state = {
   reports: [],
-  mode: "list",        // "list" | "analyze" | "admin"
+  mode: "list",        // "list" | "analyze" | "hashtags" | "admin"
   openDetailId: null
 };
 
@@ -77,11 +77,12 @@ function normalizeClassif(v) {
 }
 
 function normalizeReportKind(v) {
-  return String(v || "").trim().toUpperCase() === "FLASH" ? "FLASH" : "CONSOLIDE";
+  const raw = String(v || "").trim().toUpperCase();
+  return raw === "FLASH" || raw === "BAAP" ? "FLASH" : "CONSOLIDE";
 }
 
 function reportKindLabel(v) {
-  return normalizeReportKind(v) === "FLASH" ? "FLASH" : "WEAPONS SCHOOL";
+  return normalizeReportKind(v) === "FLASH" ? "BAAP" : "WEAPONS SCHOOL";
 }
 
 function normalizeWorkflowStatus(v) {
@@ -142,6 +143,28 @@ const FACTS_LEGACY_ITEMS = [
   { key: "how", label: "HOW?" }
 ];
 
+const BAAP_FACTS_ITEMS = [
+  { key: "airfield", heading: "AIRFIELD", factsKey: "baapAirfield" },
+  { key: "pilot", heading: "PILOT", factsKey: "baapPilot" },
+  { key: "loadmaster", heading: "LOADMASTER", factsKey: "baapLoadmaster" },
+  { key: "missionSupport", heading: "MISSION SUPPORT", factsKey: "baapMissionSupport" },
+  { key: "intel", heading: "INTEL", factsKey: "baapIntel" },
+  { key: "c2", heading: "C2", factsKey: "baapC2" }
+];
+
+function normalizeBaapSelection(values) {
+  const allowed = new Set(BAAP_FACTS_ITEMS.map((item) => item.key));
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(values) ? values : []).forEach((value) => {
+    const key = String(value || "").trim();
+    if (!allowed.has(key) || seen.has(key)) return;
+    seen.add(key);
+    out.push(key);
+  });
+  return out;
+}
+
 function sanitizeDocHtml(value) {
   const raw = String(value || "");
   if (!raw.trim()) return "";
@@ -192,11 +215,26 @@ function buildFactsContentFromLegacy(facts) {
   return sanitizeDocHtml(html);
 }
 
+function buildBaapFactsContent(facts) {
+  const src = facts && typeof facts === "object" ? facts : {};
+  if (normalizeReportKind(src.reportKind) !== "FLASH") return "";
+  const selected = new Set(normalizeBaapSelection(src.baapSelected || []));
+  let html = "";
+  BAAP_FACTS_ITEMS.forEach((item) => {
+    const value = sanitizeDocHtml(src[item.factsKey] || "");
+    if (!selected.has(item.key) && !value) return;
+    if (!value) return;
+    html += `<h1>${esc(item.heading)}</h1>${value}`;
+  });
+  return sanitizeDocHtml(html);
+}
+
 function resolveFactsContent(facts) {
   const src = facts && typeof facts === "object" ? facts : {};
-  const content = sanitizeDocHtml(src.content || "");
-  if (content) return content;
-  return buildFactsContentFromLegacy(src);
+  const main = sanitizeDocHtml(src.content || "") || buildFactsContentFromLegacy(src);
+  const baap = buildBaapFactsContent(src);
+  if (main && baap) return sanitizeDocHtml(`${main}<p><br></p>${baap}`);
+  return main || baap;
 }
 
 function htmlToText(html) {
@@ -319,6 +357,8 @@ async function hydrateReportsFromIndexedDb() {
 function normalizeAar(input) {
   const a = input && typeof input === "object" ? input : {};
   const meta = a.meta || {};
+  const reportKind = normalizeReportKind(meta.reportKind);
+  const factsSource = { ...(a.facts || {}), reportKind };
   return {
     meta: {
       title: meta.title || "",
@@ -331,7 +371,7 @@ function normalizeAar(input) {
       uniteAutre: meta.uniteAutre || "",
       classification: normalizeClassif(meta.classification || ""),
       // Extended fields from AAR PWA form
-      reportKind: normalizeReportKind(meta.reportKind),
+      reportKind,
       workflowStatus: normalizeWorkflowStatus(meta.workflowStatus),
       sentToQwiAt: meta.sentToQwiAt || "",
       publishedAt: meta.publishedAt || "",
@@ -353,14 +393,22 @@ function normalizeAar(input) {
       tacExerciseAutre: meta.tacExerciseAutre || ""
     },
     facts: {
-      content: resolveFactsContent(a.facts),
-      what: a.facts?.what || "",
-      why: a.facts?.why || "",
-      when: a.facts?.when || "",
-      where: a.facts?.where || "",
-      who: a.facts?.who || "",
-      how: a.facts?.how || "",
-      narrative: a.facts?.narrative || ""
+      reportKind,
+      content: resolveFactsContent(factsSource),
+      what: factsSource.what || "",
+      why: factsSource.why || "",
+      when: factsSource.when || "",
+      where: factsSource.where || "",
+      who: factsSource.who || "",
+      how: factsSource.how || "",
+      narrative: factsSource.narrative || "",
+      baapSelected: normalizeBaapSelection(factsSource.baapSelected || []),
+      baapAirfield: factsSource.baapAirfield || "",
+      baapPilot: factsSource.baapPilot || "",
+      baapLoadmaster: factsSource.baapLoadmaster || "",
+      baapMissionSupport: factsSource.baapMissionSupport || "",
+      baapIntel: factsSource.baapIntel || "",
+      baapC2: factsSource.baapC2 || ""
     },
     analysis: {
       content: a.analysis?.content || ""
@@ -459,7 +507,10 @@ function deriveMeta(a) {
     ? (meta.tacExercise === "AUTRE" ? meta.tacExerciseAutre : meta.tacExercise) || ""
     : "";
 
-  const factKeys = ["content", "what", "why", "when", "where", "who", "how", "narrative"];
+  const factKeys = [
+    "content", "what", "why", "when", "where", "who", "how", "narrative",
+    "baapAirfield", "baapPilot", "baapLoadmaster", "baapMissionSupport", "baapIntel", "baapC2"
+  ];
   const recoKeys = ["doctrine", "organisation", "rh", "equipements", "soutien", "entrainement"];
   const factsFilled = nonEmpty(facts.content)
     ? 1
@@ -477,9 +528,8 @@ function deriveMeta(a) {
   const recoCats = recoKeys.filter((k) => nonEmpty(recos[k])).map((k) => recoLabels[k]);
   const qwiFilled = nonEmpty(a.qwi?.advice);
 
-  const factsSearchBlob = nonEmpty(facts.content)
-    ? facts.content
-    : [facts.what, facts.why, facts.when, facts.where, facts.who, facts.how, facts.narrative].join(" ");
+  const factsSearchBlob = resolveFactsContent(facts)
+    || [facts.what, facts.why, facts.when, facts.where, facts.who, facts.how, facts.narrative].join(" ");
 
   const allText = [
     meta.title, rank, meta.nom, meta.prenom, unit,
@@ -1269,7 +1319,7 @@ function classifTag(c) {
 
 function reportKindTag(kind) {
   const norm = normalizeReportKind(kind);
-  if (norm === "FLASH") return `<span class="tag tag-report tag-report-flash">FLASH</span>`;
+  if (norm === "FLASH") return `<span class="tag tag-report tag-report-flash">BAAP</span>`;
   return `<span class="tag tag-report tag-report-consolide">WEAPONS SCHOOL</span>`;
 }
 
@@ -1301,20 +1351,23 @@ function renderList() {
 
   el.aarGrid.innerHTML = rows.map((r) => {
     const excerpt = cleanText(resolveFactsContent(r.mission?.facts) || r.mission?.analysis?.content || "");
+    const reportKindNorm = normalizeReportKind(r.reportKind);
+    const missionTypeNorm = String(r.missionType || "").trim().toUpperCase();
+    const missionTypeClass = missionTypeNorm.toLowerCase();
     const tags = [classifTag(r.classification)];
     const workflowTag = workflowStatusTag(r.workflowStatus);
     if (workflowTag) tags.push(workflowTag);
-    if (r.missionType) tags.push(`<span class="tag tag-${r.missionType.toLowerCase()}">${esc(r.missionType)}</span>`);
+    if (missionTypeNorm) tags.push(`<span class="tag tag-${missionTypeClass}">${esc(missionTypeNorm)}</span>`);
     if (r.fleet) tags.push(`<span class="tag tag-fleet">${esc(r.fleet)}</span>`);
     if (r.hashtags?.length) tags.push(...r.hashtags.slice(0, 3).map((tag) => `<span class="tag tag-dorese">${esc(tag)}</span>`));
     if (r.recoCats?.length) tags.push(...r.recoCats.slice(0, 3).map((c) => `<span class="tag tag-dorese">${esc(c)}</span>`));
 
     return `
-      <article class="aar-card card-report-${r.reportKind.toLowerCase()}" data-id="${r.id}" role="button" tabindex="0">
+      <article class="aar-card card-report-${reportKindNorm.toLowerCase()}" data-id="${r.id}" role="button" tabindex="0">
         <div class="card-top">
           <div class="card-title-wrap">
             <div class="card-title">${esc(r.title)}</div>
-            <div class="card-kind-badge card-kind-badge-${r.reportKind.toLowerCase()}">${esc(reportKindLabel(r.reportKind))}</div>
+            <div class="card-kind-badge card-kind-badge-${reportKindNorm.toLowerCase()}">${esc(reportKindLabel(reportKindNorm))}</div>
           </div>
           <div class="card-date">${formatDateFr(r.date)}</div>
         </div>
@@ -1436,7 +1489,10 @@ function openDetail(id) {
           <div class="pdf-section-title pdf-success"><h3>03. RECOMMANDATIONS (DORESE)</h3></div>
           <div class="pdf-section-content">${recosHtml}</div>
         </section>
+      </article>
 
+      <article class="pdf-page">
+        <div class="doc-classification-badge" data-level="${esc(r.classification || "UNKNOWN")}">${esc(r.classification || "UNKNOWN")}</div>
         <section class="pdf-doc-section">
           <div class="pdf-section-title"><h3>04. AVIS QWI / WEAPONS SCHOOL</h3></div>
           <div class="pdf-section-content pdf-rich">${asDocHtml(m.qwi?.advice)}</div>
@@ -1572,13 +1628,25 @@ function setView(view) {
   const target = document.getElementById(`view-${view}`);
   if (target) target.classList.add("active");
   const filtersBar = document.getElementById("filters-bar");
-  if (filtersBar) filtersBar.style.display = view === "admin" ? "none" : "";
+  if (filtersBar) filtersBar.style.display = (view === "admin" || view === "hashtags") ? "none" : "";
   renderCurrentView();
 }
 
 function renderCurrentView() {
   if (state.mode === "list") renderList();
   else if (state.mode === "analyze") renderAnalyze();
+  else if (state.mode === "hashtags") {
+    if (window.QwiMode && typeof window.QwiMode.renderHashtagSettings === "function") {
+      window.QwiMode.renderHashtagSettings(el.viewHashtags || document.getElementById("view-hashtags"));
+    } else if (el.viewHashtags) {
+      el.viewHashtags.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">#</div>
+          <h3>Administration # / infobulles</h3>
+          <p>Module d'administration indisponible.</p>
+        </div>`;
+    }
+  }
   else if (state.mode === "admin") {
     if (window.QwiMode && typeof window.QwiMode.renderAdmin === "function") {
       window.QwiMode.renderAdmin(el.viewAdmin || document.getElementById("view-admin"));
@@ -1617,6 +1685,7 @@ async function init() {
     aarCount: document.getElementById("aar-count"),
     viewList: document.getElementById("view-list"),
     viewAnalyze: document.getElementById("view-analyze"),
+    viewHashtags: document.getElementById("view-hashtags"),
     viewAdmin: document.getElementById("view-admin"),
     detailOverlay: document.getElementById("detail-overlay"),
     detailSheet: document.getElementById("detail-sheet"),
