@@ -1756,6 +1756,18 @@
     await withBusy("Publication Reader en cours...", async () => {
       const rec = JSON.parse(JSON.stringify(existing));
       rec.mission = normalizeAar(rec.mission || {});
+      
+      // Hard-strip identity in the JSON payload if anonymized, 
+      // to ensure no leak in the public NON QWI Hub.
+      if (isIdentityAnonymized(rec.mission.meta)) {
+          rec.mission.meta.nom = "ANONYME";
+          rec.mission.meta.prenom = "";
+          rec.mission.meta.grade = "ANONYMISE";
+          rec.mission.meta.gradeAutre = "";
+          rec.mission.meta.unite = "ANONYMISE";
+          rec.mission.meta.uniteAutre = "";
+      }
+
       rec.mission.meta.workflowStatus = "PUBLISHED";
       rec.mission.meta.qwiReviewedAt = new Date().toISOString();
       rec.mission.meta.publishedAt = rec.mission.meta.qwiReviewedAt;
