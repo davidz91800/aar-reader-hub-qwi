@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════
    AAR Reader Hub — Application Logic (v2 — Refonte)
    ═══════════════════════════════════════════════════════════ */
 
@@ -89,6 +89,26 @@ function normalizeWorkflowStatus(v) {
   return String(v || "").trim().toUpperCase() === "PENDING_QWI_REVIEW" ? "PENDING_QWI_REVIEW" : "PUBLISHED";
 }
 
+function isIdentityAnonymized(meta) {
+  const src = meta && typeof meta === "object" ? meta : {};
+  const visibility = String(src.identityVisibility || "").trim().toUpperCase();
+  if (visibility === "QWI_ONLY") return true;
+  const flag = src.identityAnonymized;
+  if (typeof flag === "boolean") return flag;
+  if (typeof flag === "string") {
+    const norm = flag.trim().toLowerCase();
+    if (["true", "1", "yes", "on"].includes(norm)) return true;
+    if (["false", "0", "no", "off", ""].includes(norm)) return false;
+  }
+  const nom = String(src.nom || "").trim().toUpperCase();
+  const prenom = String(src.prenom || "").trim().toUpperCase();
+  const grade = String((src.grade === "AUTRE" ? src.gradeAutre : src.grade) || "").trim().toUpperCase();
+  const unite = String((src.unite === "AUTRE" ? src.uniteAutre : src.unite) || "").trim().toUpperCase();
+  if (nom === "ANONYME" || prenom === "ANONYME") return true;
+  if (grade === "ANONYMISE" || unite === "ANONYMISE") return true;
+  return false;
+}
+
 function filterWorkflowVisibleReports(records) {
   const rows = Array.isArray(records) ? records : [];
   if (SHOW_PENDING_QWI_REVIEW) return rows;
@@ -116,6 +136,8 @@ function normalizeHashtagList(values) {
   });
   return out.sort((a, b) => a.localeCompare(b, "fr"));
 }
+
+
 
 function extractHashtags(meta) {
   const src = meta && typeof meta === "object" ? meta : {};
@@ -369,6 +391,8 @@ function normalizeAar(input) {
       prenom: meta.prenom || "",
       unite: meta.unite || "",
       uniteAutre: meta.uniteAutre || "",
+      identityAnonymized: isIdentityAnonymized(meta),
+      identityVisibility: String(meta.identityVisibility || "").trim().toUpperCase(),
       classification: normalizeClassif(meta.classification || ""),
       // Extended fields from AAR PWA form
       reportKind,
@@ -486,10 +510,18 @@ function deriveMeta(a) {
   const facts = a.facts || {};
   const recos = a.recos || {};
 
-  const rank = meta.grade === "AUTRE" ? meta.gradeAutre : meta.grade;
-  const unit = meta.unite === "AUTRE" ? meta.uniteAutre : meta.unite;
-  const name = [meta.nom, meta.prenom].filter(Boolean).join(" ").trim();
-  const redacteur = [rank, name].filter(Boolean).join(" ").trim() || "N/A";
+  const hashtags = extractHashtags(meta);
+  const identityAnonymized = isIdentityAnonymized(meta);
+  const rankRaw = meta.grade === "AUTRE" ? meta.gradeAutre : meta.grade;
+  const unitRaw = meta.unite === "AUTRE" ? meta.uniteAutre : meta.unite;
+  const nameRaw = [meta.nom, meta.prenom].filter(Boolean).join(" ").trim();
+  const rank = rankRaw;
+  const unit = /^ANONYMISE$/i.test(String(unitRaw || "").trim()) ? "" : unitRaw;
+  const name = nameRaw;
+  const neutralIdentity = /^ANONYME(\s+ANONYME)?$/i.test(String(nameRaw || "").trim()) && /^ANONYMISE$/i.test(String(rankRaw || "").trim());
+  const redacteur = neutralIdentity
+    ? "ANONYME"
+    : ([rank, name].filter(Boolean).join(" ").trim() || (identityAnonymized ? "ANONYME" : "N/A"));
 
   // Extended computed fields
   const reportKind = normalizeReportKind(meta.reportKind);
@@ -498,7 +530,6 @@ function deriveMeta(a) {
   const missionType = meta.missionType || "";
   const country = meta.logCountry === "AUTRE" ? (meta.logCountryAutre || "") : (meta.logCountry || "");
   const airfield = meta.logAirfield === "AUTRE" ? (meta.logAirfieldAutre || "") : (meta.logAirfield || "");
-  const hashtags = extractHashtags(meta);
   const hashtag = hashtags[0] || "";
   const tacContext = meta.tacContext || "";
   const tacDetail = tacContext === "OPERATIONS"
@@ -532,7 +563,7 @@ function deriveMeta(a) {
     || [facts.what, facts.why, facts.when, facts.where, facts.who, facts.how, facts.narrative].join(" ");
 
   const allText = [
-    meta.title, rank, meta.nom, meta.prenom, unit,
+    meta.title, redacteur, unit,
     factsSearchBlob,
     a.analysis?.content,
     recos.doctrine, recos.organisation, recos.rh, recos.equipements, recos.soutien, recos.entrainement,
@@ -546,7 +577,8 @@ function deriveMeta(a) {
     redacteur,
     nom: meta.nom || "",
     prenom: meta.prenom || "",
-    unit: unit || "N/A",
+    unit: unit || "",
+    identityAnonymized,
     classification: normalizeClassif(meta.classification),
     reportKind,
     workflowStatus,
@@ -1291,7 +1323,7 @@ function filtered() {
     rows = rows.filter((r) => [
       r.title, r.redacteur, r.nom, r.prenom, r.unit,
       r.reportKind,
-      r.classification, r.fleet, r.country, r.airfield, ...(r.hashtags || []),
+      r.classification, r.fleet, r.country, r.airfield, ...(Array.isArray(r.hashtags) ? r.hashtags : []),
       r.missionType, r.tacDetail,
       r.mission?.analysis?.content,
       r.mission?.facts?.narrative,
@@ -1354,13 +1386,20 @@ function renderList() {
     const reportKindNorm = normalizeReportKind(r.reportKind);
     const missionTypeNorm = String(r.missionType || "").trim().toUpperCase();
     const missionTypeClass = missionTypeNorm.toLowerCase();
+    const visibleHashtags = Array.isArray(r.hashtags) ? r.hashtags : [];
     const tags = [classifTag(r.classification)];
     const workflowTag = workflowStatusTag(r.workflowStatus);
     if (workflowTag) tags.push(workflowTag);
+    if (r.identityAnonymized) tags.push(`<span class="tag tag-log">ANONYME</span>`);
     if (missionTypeNorm) tags.push(`<span class="tag tag-${missionTypeClass}">${esc(missionTypeNorm)}</span>`);
     if (r.fleet) tags.push(`<span class="tag tag-fleet">${esc(r.fleet)}</span>`);
-    if (r.hashtags?.length) tags.push(...r.hashtags.slice(0, 3).map((tag) => `<span class="tag tag-dorese">${esc(tag)}</span>`));
+    if (visibleHashtags.length) tags.push(...visibleHashtags.slice(0, 3).map((tag) => `<span class="tag tag-dorese">${esc(tag)}</span>`));
     if (r.recoCats?.length) tags.push(...r.recoCats.slice(0, 3).map((c) => `<span class="tag tag-dorese">${esc(c)}</span>`));
+
+    const metaParts = [r.redacteur];
+    if (r.unit) metaParts.push(r.unit);
+    if (r.country) metaParts.push(r.country);
+    if (r.airfield) metaParts.push(r.airfield);
 
     return `
       <article class="aar-card card-report-${reportKindNorm.toLowerCase()}" data-id="${r.id}" role="button" tabindex="0">
@@ -1371,7 +1410,7 @@ function renderList() {
           </div>
           <div class="card-date">${formatDateFr(r.date)}</div>
         </div>
-        <div class="card-meta">${esc(r.redacteur)} · ${esc(r.unit)}${r.country ? " · " + esc(r.country) : ""}${r.airfield ? " · " + esc(r.airfield) : ""}</div>
+        <div class="card-meta">${esc(metaParts.join(" · "))}</div>
         ${excerpt ? `<div class="card-excerpt">${esc(excerpt.slice(0, 200))}</div>` : ""}
         <div class="card-tags">${tags.join("")}</div>
       </article>`;
@@ -1428,7 +1467,8 @@ function openDetail(id) {
   if (r.missionType) missionParts.push(`Type: ${r.missionType}`);
   if (r.country) missionParts.push(`Pays: ${r.country}`);
   if (r.airfield) missionParts.push(`Terrain OACI: ${r.airfield}`);
-  if (r.hashtags?.length) missionParts.push(`Hashtags: ${r.hashtags.join(", ")}`);
+  const visibleHashtags = Array.isArray(r.hashtags) ? r.hashtags : [];
+  if (visibleHashtags.length) missionParts.push(`Hashtags: ${visibleHashtags.join(", ")}`);
   if (r.tacContext) missionParts.push(`Contexte TAC: ${r.tacContext}`);
   if (r.tacDetail) missionParts.push(`Detail: ${r.tacDetail}`);
   const missionContextHtml = missionParts.length ? esc(missionParts.join(" | ")) : '<span class="doc-na">N/A</span>';
