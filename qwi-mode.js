@@ -1760,6 +1760,16 @@
       // Hard-strip identity in the JSON payload if anonymized, 
       // to ensure no leak in the public NON QWI Hub.
       if (isIdentityAnonymized(rec.mission.meta)) {
+          rec.mission.meta.identityVisibility = 'QWI_ONLY';
+          rec.mission.meta.identityAnonymized = true;
+          
+          // Force re-adding #ANONYME for robustness in the Reader Hub
+          if (!Array.isArray(rec.mission.meta.hashtags)) rec.mission.meta.hashtags = [];
+          const hasAnonyme = rec.mission.meta.hashtags.some(h => String(h || '').trim().toUpperCase() === '#ANONYME');
+          if (!hasAnonyme) {
+              rec.mission.meta.hashtags.push('#ANONYME');
+          }
+
           rec.mission.meta.nom = "ANONYME";
           rec.mission.meta.prenom = "";
           rec.mission.meta.grade = "ANONYMISE";
@@ -3039,9 +3049,11 @@
     toast("Hashtag renomme dans 1. FAITS.");
   }
 
+
   async function deleteFactsHashtag(value) {
     const normalized = normalizeHashtag(value);
     if (!normalized) return;
+
     const canDelete = await askConfirmation({
       title: "Supprimer un bouton #",
       message: `Supprimer '${normalized}' des boutons de 1. FAITS ?\n\nCela ne supprime pas ce hashtag du catalogue general de 0. CONFIGURATION.`,

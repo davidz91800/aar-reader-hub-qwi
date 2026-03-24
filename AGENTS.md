@@ -32,6 +32,22 @@ Ce dossier (`E - AAR READER HUB QWI`) est le hub QWI (lecture + edition + suppre
 - Sous-onglet `Boutons #`: la liste est reordonnable en glisser-deposer et l'ordre est persiste dans `catalog.factsHashtags`.
 - Glisser-deposer: afficher un indicateur visuel de depot (bande visible) exactement entre 2 hashtags (position d'insertion reelle).
 - Sous-onglet `Boutons #`: pas de scroll interne dedie a la liste des hashtags (utiliser le scroll global de page).
+- Le filtre `Hashtag` du HUB QWI est en multi-selection avec recherche texte:
+  - logique d'application: ET (un AAR doit contenir tous les hashtags selectionnes),
+  - persistance locale: tableau `hashtags[]` (avec compatibilite legacy de lecture `hashtag`),
+  - UX de selection: panneau searchable avec compteurs d'occurrences (`n AAR`) + actions rapides (`Tout selectionner` / `Effacer` / `Inverser`) + suppression directe des hashtags deja selectionnes,
+  - navigation clavier: dans la recherche hashtag, `fleche bas` / `fleche haut` pour naviguer, `Entree` pour selectionner/valider le hashtag actif,
+  - contrainte d'affichage: le panneau des filtres hashtags doit rester au-dessus de la grille AAR (pas de recouvrement/coupure par les cartes),
+  - `#ANONYME` reste masque dans les options visibles.
+- Le filtre `Mission (LOG/TAC)` est retire du HUB QWI.
+- Le filtre `Code OACI` le remplace:
+  - selection unique (pas de multi-selection),
+  - recherche texte + navigation clavier (`fleche bas` / `fleche haut` / `Entree`),
+  - persistance locale via la cle filtre `oaci`.
+- Rendu visuel des tags en cartes:
+  - hashtags `#...` en style gris neutre (`tag-hashtag`),
+  - categories DORESE en rose (`tag-dorese`).
+- Rendu tags DORESE (`DOCTRINE`, `ORGANISATION`, `RH`, `EQUIPEMENTS`, `SOUTIEN`, `ENTRAINEMENT`): utiliser une couleur dediee distincte des tags classification (`NP/DR/SSF`), anonymisation (`ANONYME`) et flotte (`AIRCRAFT`).
 
 ## Couplage obligatoire
 - Base lecture: logique alignee avec `../D - AAR READER HUB`.
