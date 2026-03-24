@@ -140,6 +140,25 @@ function normalizeHashtagList(values) {
   return out.sort((a, b) => a.localeCompare(b, "fr"));
 }
 
+function isInternalHiddenHashtag(tag) {
+  return normalizeHashtagValue(tag).toUpperCase() === "#ANONYME";
+}
+
+function getVisibleRecordHashtags(record) {
+  const list = Array.isArray(record?.hashtags) ? record.hashtags : [];
+  const out = [];
+  const seen = new Set();
+  list.forEach((value) => {
+    const tag = normalizeHashtagValue(value);
+    if (!tag || isInternalHiddenHashtag(tag)) return;
+    const key = tag.toUpperCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(tag);
+  });
+  return out;
+}
+
 
 
 function extractHashtags(meta) {
@@ -156,7 +175,7 @@ function extractHashtags(meta) {
     if (selected) out.push(selected);
     if (other && other.toUpperCase() !== selected.toUpperCase()) out.push(other);
   }
-  return normalizeHashtagList(out);
+  return normalizeHashtagList(out).filter((tag) => !isInternalHiddenHashtag(tag));
 }
 
 const FACTS_LEGACY_ITEMS = [
@@ -1263,7 +1282,9 @@ function getUniqueValues(key) {
 function getUniqueArrayValues(key) {
   const vals = new Set();
   for (const r of state.reports) {
-    const list = Array.isArray(r[key]) ? r[key] : [];
+    const list = key === "hashtags"
+      ? getVisibleRecordHashtags(r)
+      : (Array.isArray(r[key]) ? r[key] : []);
     list.forEach((value) => {
       const v = String(value || "").trim();
       if (v && v !== "N/A") vals.add(v);
@@ -1320,13 +1341,13 @@ function filtered() {
   if (unit !== "ALL") rows = rows.filter((r) => r.unit === unit);
   if (country !== "ALL") rows = rows.filter((r) => r.country === country);
   if (operation !== "ALL") rows = rows.filter((r) => r.tacDetail === operation);
-  if (hashtag !== "ALL") rows = rows.filter((r) => (Array.isArray(r.hashtags) ? r.hashtags : []).includes(hashtag));
+  if (hashtag !== "ALL") rows = rows.filter((r) => getVisibleRecordHashtags(r).includes(hashtag));
 
   if (q) {
     rows = rows.filter((r) => [
       r.title, r.redacteur, r.nom, r.prenom, r.unit,
       r.reportKind,
-      r.classification, r.fleet, r.country, r.airfield, ...(Array.isArray(r.hashtags) ? r.hashtags : []),
+      r.classification, r.fleet, r.country, r.airfield, ...getVisibleRecordHashtags(r),
       r.missionType, r.tacDetail,
       r.mission?.analysis?.content,
       r.mission?.facts?.narrative,
@@ -1389,7 +1410,7 @@ function renderList() {
     const reportKindNorm = normalizeReportKind(r.reportKind);
     const missionTypeNorm = String(r.missionType || "").trim().toUpperCase();
     const missionTypeClass = missionTypeNorm.toLowerCase();
-    const visibleHashtags = Array.isArray(r.hashtags) ? r.hashtags : [];
+    const visibleHashtags = getVisibleRecordHashtags(r);
     const tags = [classifTag(r.classification)];
     const workflowTag = workflowStatusTag(r.workflowStatus);
     if (workflowTag) tags.push(workflowTag);
@@ -1470,7 +1491,7 @@ function openDetail(id) {
   if (r.missionType) missionParts.push(`Type: ${r.missionType}`);
   if (r.country) missionParts.push(`Pays: ${r.country}`);
   if (r.airfield) missionParts.push(`Terrain OACI: ${r.airfield}`);
-  const visibleHashtags = Array.isArray(r.hashtags) ? r.hashtags : [];
+  const visibleHashtags = getVisibleRecordHashtags(r);
   if (visibleHashtags.length) missionParts.push(`Hashtags: ${visibleHashtags.join(", ")}`);
   if (r.tacContext) missionParts.push(`Contexte TAC: ${r.tacContext}`);
   if (r.tacDetail) missionParts.push(`Detail: ${r.tacDetail}`);

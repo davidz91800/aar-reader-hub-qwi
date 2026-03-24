@@ -3,13 +3,13 @@
 ## Role
 Ce dossier (`E - AAR READER HUB QWI`) est le hub QWI (lecture + edition + suppression + publication).
 
-## Points de schema a maintenir (maj 2026-03-23)
+## Points de schema a maintenir (maj 2026-03-24)
 - Afficher `BAAP` pour le type AAR technique `FLASH` dans les filtres, cartes et details.
 - Respecter l'anonymisation des identites:
   - detection prioritaire via `meta.identityAnonymized` / `meta.identityVisibility=QWI_ONLY`,
   - fallback compatibilite via valeurs neutres (`ANONYME` / `ANONYMISE`) si les flags sont absents,
   - fallback de marquage via `meta.hashtags` contenant `#ANONYME`,
-  - contrainte UX: `#ANONYME` reste un marqueur technique interne et ne doit pas etre affiche dans les hashtags visibles,
+  - contrainte UX: `#ANONYME` reste un marqueur technique interne et ne doit pas etre affiche dans les hashtags visibles (filtrage applique des l'extraction),
   - en vue QWI, conserver l'affichage du nom redacteur quand disponible,
   - ajouter un tag `ANONYME` en carte (style mission `LOG`) quand le dossier est anonymise,
   - rendu compact de secours: si les seules valeurs recues sont neutres, afficher une seule valeur `ANONYME` (pas de duplication).
