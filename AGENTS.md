@@ -21,6 +21,7 @@ Ce dossier (`E - AAR READER HUB QWI`) est le hub QWI (lecture + edition + suppre
   - `facts.baapMissionSupport`,
   - `facts.baapIntel`,
   - `facts.baapC2`.
+- Le rendu texte (`facts/analysis/recos`) doit decoder les entites HTML (y compris doubles, ex: `&amp;#039;`) avant echappement final pour eviter les artefacts visuels.
 - Maintenir la vue dediee `# / infobulles` (4e onglet) pour edition QWI de:
   - `catalog.factsHashtags` (boutons `#` visibles dans `1. FAITS`),
   - `catalog.factsHashtagTooltipMap` (mapping persistant `# -> infobulle`, conserve lors d'un renommage, avec cles socle `BAAP_ROLE_*` ou cles dediees `FACTS_HASHTAG_*`),
@@ -44,6 +45,17 @@ Ce dossier (`E - AAR READER HUB QWI`) est le hub QWI (lecture + edition + suppre
   - selection unique (pas de multi-selection),
   - recherche texte + navigation clavier (`fleche bas` / `fleche haut` / `Entree`),
   - persistance locale via la cle filtre `oaci`.
+- Le filtre `Pays` adopte la meme UX que `Code OACI`:
+  - selection unique (pas de multi-selection),
+  - recherche texte + navigation clavier (`fleche bas` / `fleche haut` / `Entree`),
+  - persistance locale via la cle filtre `country`.
+- Le filtre `Periode` encadre le volume affiche:
+  - valeur par defaut: `6 derniers mois`,
+  - option explicite: `Tout historique`,
+  - persistance locale via la cle filtre `period`.
+- Le filtre `DORESE` est independant du filtre `Classification`:
+  - valeurs exposees: `DOCTRINE`, `ORGANISATION`, `RH`, `EQUIPEMENTS`, `SOUTIEN`, `ENTRAINEMENT`,
+  - comportement: filtre sur la presence de la categorie DORESE choisie dans `recoCats`.
 - Rendu visuel des tags en cartes:
   - hashtags `#...` en style gris neutre (`tag-hashtag`),
   - categories DORESE en rose (`tag-dorese`).
@@ -72,6 +84,9 @@ Toute evolution de schema/champ/rendu AAR doit etre synchronisee avec:
 ## Backend Apps Script
 - Source backend: `apps-script/Code.gs`
 - Endpoints utilises: `listAars`, `upsert`, `delete`, `setCatalog`
+- `listAars` doit rester compatible avec les JSON UTF-8 BOM (prefixe `\uFEFF`) pour eviter les AAR invisibles.
+- Le timeout reseau Apps Script est parametre par `config.js -> appsScript.timeoutMs` (borne entre 5s et 120s, fallback 20s).
+- En cas d'echec Apps Script, le hub tente automatiquement un fallback vers Google Drive, puis source statique si active.
 - `setCatalog/getCatalog` doivent conserver `hashtags`, `factsHashtags`, `factsHashtagsConfigured`, `factsHashtagTooltipMap`, `oaciCountryMap` et `tooltipComments`.
 - Au chargement du HUB QWI, le catalogue distant (`getCatalog`) est prioritaire sur le cache local navigateur pour garantir le meme ordre de boutons `1. FAITS` que la PWA.
 - Automation ingest: `runIngestEmailsToDrive` (trigger)

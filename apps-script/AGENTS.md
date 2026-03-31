@@ -8,6 +8,7 @@ Ce sous-dossier contient le backend Apps Script unifie (`Code.gs`) pour les apps
 
 ## Contrats a maintenir
 - Endpoints front: `status`, `listAars`, `getCatalog`, `setCatalog`, `upsert`, `delete`.
+- `listAars` doit tolerer les JSON UTF-8 avec BOM (prefixe `\uFEFF`) pour ne pas masquer les AAR valides.
 - Le catalogue persiste inclut `hashtags`, `factsHashtags`, `factsHashtagsConfigured`, `factsHashtagTooltipMap`, `countries`, `oaci`, `operations`, `exercises`, `oaciCountryMap`, `tooltipComments`.
 - `factsHashtags` doit conserver l'ordre fourni par le hub QWI (pas de tri backend).
 - `factsHashtagTooltipMap` doit accepter et persister les cles socle `BAAP_ROLE_*` ainsi que les cles dynamiques `FACTS_HASHTAG_*`.
@@ -30,6 +31,7 @@ Si un agent modifie ce sous-dossier, il doit mettre a jour dans le meme changeme
 - Ecriture QWI: `action=upsert` puis `action=delete`.
 - Ingest: `action=runIngest` ou trigger horaire.
 - Encodage texte requis: `UTF-8`.
+- Recommande: JSON UTF-8 sans BOM a l'ecriture; la lecture backend reste compatible BOM.
 
 ## Communication obligatoire utilisateur
 - Toute modification de `Code.gs` doit etre signalee explicitement a l'utilisateur dans la reponse finale.

@@ -511,7 +511,7 @@ function handleListAars_(params, cfg) {
 
     try {
       var text = file.getBlob().getDataAsString();
-      var parsed = JSON.parse(text);
+      var parsed = JSON.parse(stripUtf8Bom_(text));
       files.push({
         id: file.getId(),
         name: name,
@@ -755,7 +755,11 @@ function isAarLike_(obj) {
 }
 
 function parseJsonSafely_(text) {
-  try { return JSON.parse(text); } catch (_) { return null; }
+  try { return JSON.parse(stripUtf8Bom_(text)); } catch (_) { return null; }
+}
+
+function stripUtf8Bom_(text) {
+  return String(text || "").replace(/^\uFEFF/, "");
 }
 
 function extractBalancedJsonObjects_(text, maxCount) {
